@@ -1,45 +1,52 @@
 {
-  "name": "fs-jetpack",
+  "name": "@rcsf/fs-jetpack",
   "description": "Better file system API",
-  "version": "5.1.0",
-  "author": "Jakub Szwacz <jakub@szwacz.com>",
+  "version": "6.0.0",
+  "type": "module",
+  "author": "Rigby Capital",
+  "contributors": [
+    "Jakub Szwacz <jakub@szwacz.com>"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
-    "minimatch": "^5.1.0"
+    "minimatch": "10.2.5"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.3",
-    "@types/fs-extra": "^5.0.4",
-    "@types/mocha": "^9.1.1",
-    "@types/node": "^18.7.18",
-    "chai": "^4.3.6",
-    "fs-extra": "^5.0.0",
-    "istanbul": "^0.4.5",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
-    "prettier": "^2.7.1",
-    "pretty-bytes": "^5.1.0",
-    "release-assist": "^2.0.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.8.3"
+    "@types/fs-extra": "11.0.4",
+    "@types/node": "22.19.17",
+    "fs-extra": "11.3.4",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "xo": "2.0.2"
   },
   "scripts": {
-    "test": "mocha -r ts-node/register \"spec/**/*.spec.ts\"",
-    "coverage": "nyc --reporter=lcov npm run test",
-    "prettier": "prettier --write \"./**/*.{js,ts}\"",
-    "release-start": "release-assist --start",
-    "release-finish": "release-assist --finish"
+    "build": "tsc",
+    "test": "node --import tsx --test 'spec/**/*.spec.ts'",
+    "coverage": "node --import tsx --test --experimental-test-coverage 'spec/**/*.spec.ts'",
+    "lint": "xo",
+    "lint:fix": "xo --fix",
+    "prepublishOnly": "npm run build"
   },
-  "main": "main.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "files": [
-    "lib",
-    "index.d.ts",
-    "types.d.ts"
+    "dist"
   ],
-  "types": "index.d.ts",
-  "homepage": "https://github.com/szwacz/fs-jetpack",
+  "homepage": "https://github.com/rigby-capital/fs-jetpack",
   "repository": {
     "type": "git",
-    "url": "https://github.com/szwacz/fs-jetpack.git"
+    "url": "https://github.com/rigby-capital/fs-jetpack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rigby-capital/fs-jetpack/issues"
   },
   "license": "MIT",
   "keywords": [
