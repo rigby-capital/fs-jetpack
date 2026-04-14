@@ -1,20 +1,54 @@
-"use strict";
+import fs from "node:fs";
+import fsp from "node:fs/promises";
+import path from "node:path";
+import * as inspect from "../inspect.js";
 
-const fs = require("fs");
-const pathUtil = require("path");
-const inspect = require("../inspect");
-const list = require("../list");
+/** Filesystem entry type classification. */
+export type ItemType = "dir" | "file" | "symlink" | "other";
 
-const fileType = (dirent) => {
+/** Represents a filesystem entry with at minimum a name and type. */
+export type FileItem = {
+  name: string;
+  type: ItemType;
+  [key: string]: unknown;
+};
+
+/** Options controlling what metadata is collected during file inspection. */
+export type InspectOptions = {
+  checksum?: string;
+  mode?: boolean;
+  times?: boolean;
+  absolutePath?: boolean;
+  symlinks?: "report" | "follow";
+};
+
+/** Options controlling directory tree walking behavior. */
+export type WalkOptions = {
+  maxLevelsDeep?: number;
+  inspectOptions?: InspectOptions;
+  symlinks?: "report" | "follow";
+};
+
+/** Callback invoked for each filesystem entry encountered during a walk. */
+export type WalkCallback = (path: string, item: FileItem | undefined) => void;
+
+/** Callback invoked when an async walk completes or encounters an error. */
+export type DoneCallback = (error?: Error | NodeJS.ErrnoException) => void;
+
+/** Determines the {@link ItemType} of a filesystem entry from its dirent or stats object. */
+const fileType = (dirent: fs.Dirent | fs.Stats): ItemType => {
   if (dirent.isDirectory()) {
     return "dir";
   }
+
   if (dirent.isFile()) {
     return "file";
   }
+
   if (dirent.isSymbolicLink()) {
     return "symlink";
   }
+
   return "other";
 };
 
@@ -22,10 +56,19 @@ const fileType = (dirent) => {
 // SYNC
 // ---------------------------------------------------------
 
-const initialWalkSync = (path, options, callback) => {
+/**
+ * Synchronously walks a directory tree, invoking the callback for each entry.
+ * Defaults to unlimited depth if `maxLevelsDeep` is not set.
+ */
+const initialWalkSync = (
+  walkPath: string,
+  options: WalkOptions,
+  callback: WalkCallback,
+): void => {
   if (options.maxLevelsDeep === undefined) {
     options.maxLevelsDeep = Infinity;
   }
+
   const performInspectOnEachNode = options.inspectOptions !== undefined;
   if (options.symlinks) {
     if (options.inspectOptions === undefined) {
@@ -35,33 +78,38 @@ const initialWalkSync = (path, options, callback) => {
     }
   }
 
-  const walkSync = (path, currentLevel) => {
-    fs.readdirSync(path, { withFileTypes: true }).forEach((direntItem) => {
+  const walkSync = (dirPath: string, currentLevel: number): void => {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const direntItem of entries) {
       const withFileTypesNotSupported = typeof direntItem === "string";
 
-      let fileItemPath;
-      if (withFileTypesNotSupported) {
-        fileItemPath = pathUtil.join(path, direntItem);
-      } else {
-        fileItemPath = pathUtil.join(path, direntItem.name);
-      }
+      const fileItemPath: string = withFileTypesNotSupported
+        ? path.join(dirPath, direntItem as unknown as string)
+        : path.join(dirPath, direntItem.name);
 
-      let fileItem;
+      let fileItem: FileItem | undefined;
       if (performInspectOnEachNode) {
-        fileItem = inspect.sync(fileItemPath, options.inspectOptions);
+        fileItem = inspect.sync(fileItemPath, options.inspectOptions) as
+        | FileItem
+        | undefined;
       } else if (withFileTypesNotSupported) {
         // New "withFileTypes" API not supported, need to do extra inspect
         // on each node, to know if this is a directory or a file.
         const inspectObject = inspect.sync(
           fileItemPath,
-          options.inspectOptions
-        );
-        fileItem = { name: inspectObject.name, type: inspectObject.type };
+          options.inspectOptions,
+        ) as FileItem | undefined;
+        if (inspectObject) {
+          fileItem = { name: inspectObject.name, type: inspectObject.type };
+        }
       } else {
         const type = fileType(direntItem);
         if (type === "symlink" && options.symlinks === "follow") {
           const symlinkPointsTo = fs.statSync(fileItemPath);
-          fileItem = { name: direntItem.name, type: fileType(symlinkPointsTo) };
+          fileItem = {
+            name: direntItem.name,
+            type: fileType(symlinkPointsTo),
+          };
         } else {
           fileItem = { name: direntItem.name, type };
         }
@@ -69,26 +117,29 @@ const initialWalkSync = (path, options, callback) => {
 
       if (fileItem !== undefined) {
         callback(fileItemPath, fileItem);
-        if (fileItem.type === "dir" && currentLevel < options.maxLevelsDeep) {
+        if (fileItem.type === "dir" && currentLevel < options.maxLevelsDeep!) {
           walkSync(fileItemPath, currentLevel + 1);
         }
       }
-    });
+    }
   };
 
-  const item = inspect.sync(path, options.inspectOptions);
+  const item = inspect.sync(walkPath, options.inspectOptions) as
+    | FileItem
+    | undefined;
   if (item) {
     if (performInspectOnEachNode) {
-      callback(path, item);
+      callback(walkPath, item);
     } else {
       // Return simplified object, not full inspect object
-      callback(path, { name: item.name, type: item.type });
+      callback(walkPath, { name: item.name, type: item.type });
     }
+
     if (item.type === "dir") {
-      walkSync(path, 1);
+      walkSync(walkPath, 1);
     }
   } else {
-    callback(path, undefined);
+    callback(walkPath, undefined);
   }
 };
 
@@ -96,12 +147,23 @@ const initialWalkSync = (path, options, callback) => {
 // ASYNC
 // ---------------------------------------------------------
 
+/** Maximum number of concurrent filesystem operations during async walk. */
 const maxConcurrentOperations = 5;
 
-const initialWalkAsync = (path, options, callback, doneCallback) => {
+/**
+ * Asynchronously walks a directory tree with bounded concurrency,
+ * invoking the callback for each entry and doneCallback on completion or error.
+ */
+const initialWalkAsync = (
+  walkPath: string,
+  options: WalkOptions,
+  callback: WalkCallback,
+  doneCallback: DoneCallback,
+): void => {
   if (options.maxLevelsDeep === undefined) {
     options.maxLevelsDeep = Infinity;
   }
+
   const performInspectOnEachNode = options.inspectOptions !== undefined;
   if (options.symlinks) {
     if (options.inspectOptions === undefined) {
@@ -111,10 +173,10 @@ const initialWalkAsync = (path, options, callback, doneCallback) => {
     }
   }
 
-  const concurrentOperationsQueue = [];
+  const concurrentOperationsQueue: Array<() => void> = [];
   let nowDoingConcurrentOperations = 0;
 
-  const checkConcurrentOperations = () => {
+  const checkConcurrentOperations = (): void => {
     if (
       concurrentOperationsQueue.length === 0 &&
       nowDoingConcurrentOperations === 0
@@ -124,49 +186,51 @@ const initialWalkAsync = (path, options, callback, doneCallback) => {
       concurrentOperationsQueue.length > 0 &&
       nowDoingConcurrentOperations < maxConcurrentOperations
     ) {
-      const operation = concurrentOperationsQueue.pop();
+      const operation = concurrentOperationsQueue.pop()!;
       nowDoingConcurrentOperations += 1;
       operation();
     }
   };
 
-  const whenConcurrencySlotAvailable = (operation) => {
+  const whenConcurrencySlotAvailable = (operation: () => void): void => {
     concurrentOperationsQueue.push(operation);
     checkConcurrentOperations();
   };
 
-  const concurrentOperationDone = () => {
+  const concurrentOperationDone = (): void => {
     nowDoingConcurrentOperations -= 1;
     checkConcurrentOperations();
   };
 
-  const walkAsync = (path, currentLevel) => {
-    const goDeeperIfDir = (fileItemPath, fileItem) => {
-      if (fileItem.type === "dir" && currentLevel < options.maxLevelsDeep) {
+  const walkAsync = (dirPath: string, currentLevel: number): void => {
+    const goDeeperIfDir = (fileItemPath: string, fileItem: FileItem): void => {
+      if (fileItem.type === "dir" && currentLevel < options.maxLevelsDeep!) {
         walkAsync(fileItemPath, currentLevel + 1);
       }
     };
 
     whenConcurrencySlotAvailable(() => {
-      fs.readdir(path, { withFileTypes: true }, (err, files) => {
-        if (err) {
-          doneCallback(err);
-        } else {
-          files.forEach((direntItem) => {
+      fsp
+        .readdir(dirPath, { withFileTypes: true })
+        .then((files) => {
+          for (const direntItem of files) {
             const withFileTypesNotSupported = typeof direntItem === "string";
 
-            let fileItemPath;
+            let fileItemPath: string;
             if (withFileTypesNotSupported) {
-              fileItemPath = pathUtil.join(path, direntItem);
+              fileItemPath = path.join(
+                dirPath,
+                direntItem as unknown as string,
+              );
             } else {
-              fileItemPath = pathUtil.join(path, direntItem.name);
+              fileItemPath = path.join(dirPath, direntItem.name);
             }
 
             if (performInspectOnEachNode || withFileTypesNotSupported) {
               whenConcurrencySlotAvailable(() => {
                 inspect
                   .async(fileItemPath, options.inspectOptions)
-                  .then((fileItem) => {
+                  .then((fileItem: FileItem | undefined) => {
                     if (fileItem !== undefined) {
                       if (performInspectOnEachNode) {
                         callback(fileItemPath, fileItem);
@@ -176,67 +240,74 @@ const initialWalkAsync = (path, options, callback, doneCallback) => {
                           type: fileItem.type,
                         });
                       }
+
                       goDeeperIfDir(fileItemPath, fileItem);
                     }
+
                     concurrentOperationDone();
                   })
-                  .catch((err) => {
-                    doneCallback(err);
+                  .catch((error: Error) => {
+                    doneCallback(error);
                   });
               });
             } else {
               const type = fileType(direntItem);
               if (type === "symlink" && options.symlinks === "follow") {
                 whenConcurrencySlotAvailable(() => {
-                  fs.stat(fileItemPath, (err, symlinkPointsTo) => {
-                    if (err) {
-                      doneCallback(err);
-                    } else {
-                      const fileItem = {
+                  fsp
+                    .stat(fileItemPath)
+                    .then((symlinkPointsTo) => {
+                      const fileItem: FileItem = {
                         name: direntItem.name,
                         type: fileType(symlinkPointsTo),
                       };
                       callback(fileItemPath, fileItem);
                       goDeeperIfDir(fileItemPath, fileItem);
                       concurrentOperationDone();
-                    }
-                  });
+                    })
+                    .catch((error: Error) => {
+                      doneCallback(error);
+                    });
                 });
               } else {
-                const fileItem = { name: direntItem.name, type };
+                const fileItem: FileItem = { name: direntItem.name, type };
                 callback(fileItemPath, fileItem);
                 goDeeperIfDir(fileItemPath, fileItem);
               }
             }
-          });
+          }
+
           concurrentOperationDone();
-        }
-      });
+        })
+        .catch((error: Error) => {
+          doneCallback(error);
+        });
     });
   };
 
   inspect
-    .async(path, options.inspectOptions)
-    .then((item) => {
+    .async(walkPath, options.inspectOptions)
+    .then((item: FileItem | undefined) => {
       if (item) {
         if (performInspectOnEachNode) {
-          callback(path, item);
+          callback(walkPath, item);
         } else {
           // Return simplified object, not full inspect object
-          callback(path, { name: item.name, type: item.type });
+          callback(walkPath, { name: item.name, type: item.type });
         }
+
         if (item.type === "dir") {
-          walkAsync(path, 1);
+          walkAsync(walkPath, 1);
         } else {
           doneCallback();
         }
       } else {
-        callback(path, undefined);
+        callback(walkPath, undefined);
         doneCallback();
       }
     })
-    .catch((err) => {
-      doneCallback(err);
+    .catch((error: Error) => {
+      doneCallback(error);
     });
 };
 
@@ -244,5 +315,4 @@ const initialWalkAsync = (path, options, callback, doneCallback) => {
 // API
 // ---------------------------------------------------------
 
-exports.sync = initialWalkSync;
-exports.async = initialWalkAsync;
+export { initialWalkSync as sync, initialWalkAsync as async };
