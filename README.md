@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/rigby-capital/fs-jetpack/actions/workflows/test.yml/badge.svg)](https://github.com/rigby-capital/fs-jetpack/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/@rcsf/fs-jetpack)](https://www.npmjs.com/package/@rcsf/fs-jetpack)
-[![license](https://img.shields.io/npm/l/@rcsf/fs-jetpack)](./LICENSE)
+[![license](https://img.shields.io/npm/l/@rcsf/fs-jetpack)](https://github.com/rigby-capital/fs-jetpack/blob/master/LICENSE)
 [![Node.js](https://img.shields.io/node/v/@rcsf/fs-jetpack)](https://nodejs.org)
 
 A maintained successor of [`fs-jetpack`](https://github.com/szwacz/fs-jetpack) by Jakub Szwacz.
