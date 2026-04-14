@@ -82,11 +82,11 @@ const createJetpackDir = (absolutePath: string): JetpackDir => {
     // ----- find (already throws ENOENT internally) -----
 
     find(options?: FindOptions): string[] {
-      const options_ = normalizeOptions(options);
+      const options_: FindOptions = {...options, cwd: absolutePath};
       return find.sync(absolutePath, options_);
     },
     async findAsync(options?: FindOptions): Promise<string[]> {
-      const options_ = normalizeOptions(options);
+      const options_: FindOptions = {...options, cwd: absolutePath};
       return find.async(absolutePath, options_);
     },
 
@@ -212,11 +212,4 @@ function throwEnoent(dirPath: string): never {
   error.code = "ENOENT";
   error.path = dirPath;
   throw error;
-}
-
-/**
- * Shallow-copies options so we don't mutate the caller's object.
- */
-function normalizeOptions<T extends Record<string, unknown>>(options?: T): T {
-  return (options ? {...options} : {}) as T;
 }
