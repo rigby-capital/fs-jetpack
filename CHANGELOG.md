@@ -1,4 +1,4 @@
-# 6.0.0 (unreleased)
+# 6.0.0 (2026-04-14)
 
 This is the first release of `@rcsf/fs-jetpack`, a maintained successor of [`fs-jetpack`](https://github.com/szwacz/fs-jetpack) by Jakub Szwacz.
 
