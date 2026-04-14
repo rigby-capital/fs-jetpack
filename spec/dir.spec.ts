@@ -1,9 +1,10 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import * as pathUtil from "path";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import * as pathUtil from "node:path";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 import { FSJetpack } from "../types";
 
 describe("dir", () => {
@@ -12,7 +13,7 @@ describe("dir", () => {
 
   describe("creates directory if it doesn't exist", () => {
     const expectations = () => {
-      path("x").shouldBeDirectory();
+      assertPath("x").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -20,11 +21,9 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.dirAsync("x").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.dirAsync("x");
+      expectations();
     });
   });
 
@@ -34,7 +33,7 @@ describe("dir", () => {
     };
 
     const expectations = () => {
-      path("x").shouldBeDirectory();
+      assertPath("x").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -43,18 +42,16 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.dirAsync("x").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.dirAsync("x");
+      expectations();
     });
   });
 
   describe("creates nested directories if necessary", () => {
     const expectations = () => {
-      path("a/b/c").shouldBeDirectory();
+      assertPath("a/b/c").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -62,30 +59,20 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.dirAsync("a/b/c").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.dirAsync("a/b/c");
+      expectations();
     });
   });
 
   describe("handles well two calls racing to create the same directory", () => {
     const expectations = () => {
-      path("a/b/c").shouldBeDirectory();
+      assertPath("a/b/c").shouldBeDirectory();
     };
 
-    it("async", (done) => {
-      let doneCount = 0;
-      const check = () => {
-        doneCount += 1;
-        if (doneCount === 2) {
-          expectations();
-          done();
-        }
-      };
-      jetpack.dirAsync("a/b/c").then(check);
-      jetpack.dirAsync("a/b/c").then(check);
+    it("async", async () => {
+      await Promise.all([jetpack.dirAsync("a/b/c"), jetpack.dirAsync("a/b/c")]);
+      expectations();
     });
   });
 
@@ -96,8 +83,8 @@ describe("dir", () => {
     };
 
     const expectations = () => {
-      path("a/b").shouldBeDirectory();
-      path("a/c.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b").shouldBeDirectory();
+      assertPath("a/c.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -106,12 +93,10 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.dirAsync("a").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.dirAsync("a");
+      expectations();
     });
   });
 
@@ -121,8 +106,8 @@ describe("dir", () => {
     };
 
     const expectations = () => {
-      path("a/b/file.txt").shouldNotExist();
-      path("a").shouldBeDirectory();
+      assertPath("a/b/file.txt").shouldNotExist();
+      assertPath("a").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -131,12 +116,10 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.dirAsync("a", { empty: true }).then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.dirAsync("a", { empty: true });
+      expectations();
     });
   });
 
@@ -146,7 +129,7 @@ describe("dir", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.message).to.have.string("exists but is not a directory");
+      assert.ok(err.message.includes("exists but is not a directory"));
     };
 
     it("sync", () => {
@@ -154,23 +137,26 @@ describe("dir", () => {
       try {
         jetpack.dir("a");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.dirAsync("a").catch((err) => {
-        expectations(err);
-        done();
-      });
+      await assert.rejects(
+        () => jetpack.dirAsync("a"),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
   describe("respects internal CWD of jetpack instance", () => {
     const expectations = () => {
-      path("a/b").shouldBeDirectory();
+      assertPath("a/b").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -179,36 +165,32 @@ describe("dir", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
-      jetContext.dirAsync("b").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.dirAsync("b");
+      expectations();
     });
   });
 
   describe("returns jetack instance pointing on this directory", () => {
     const expectations = (jetpackContext: FSJetpack) => {
-      expect(jetpackContext.cwd()).to.equal(pathUtil.resolve("a"));
+      assert.strictEqual(jetpackContext.cwd(), pathUtil.resolve("a"));
     };
 
     it("sync", () => {
       expectations(jetpack.dir("a"));
     });
 
-    it("async", (done) => {
-      jetpack.dirAsync("a").then((jetpackContext) => {
-        expectations(jetpackContext);
-        done();
-      });
+    it("async", async () => {
+      const jetpackContext = await jetpack.dirAsync("a");
+      expectations(jetpackContext);
     });
   });
 
   if (process.platform !== "win32") {
     describe("sets mode to newly created directory (unix only)", () => {
       const expectations = () => {
-        path("a").shouldHaveMode("511");
+        assertPath("a").shouldHaveMode("511");
       };
 
       it("sync, mode passed as string", () => {
@@ -221,25 +203,21 @@ describe("dir", () => {
         expectations();
       });
 
-      it("async, mode passed as string", (done) => {
-        jetpack.dirAsync("a", { mode: "511" }).then(() => {
-          expectations();
-          done();
-        });
+      it("async, mode passed as string", async () => {
+        await jetpack.dirAsync("a", { mode: "511" });
+        expectations();
       });
 
-      it("async, mode passed as number", (done) => {
-        jetpack.dirAsync("a", { mode: 0o511 }).then(() => {
-          expectations();
-          done();
-        });
+      it("async, mode passed as number", async () => {
+        await jetpack.dirAsync("a", { mode: 0o511 });
+        expectations();
       });
     });
 
     describe("sets desired mode to every created directory (unix only)", () => {
       const expectations = () => {
-        path("a").shouldHaveMode("711");
-        path("a/b").shouldHaveMode("711");
+        assertPath("a").shouldHaveMode("711");
+        assertPath("a/b").shouldHaveMode("711");
       };
 
       it("sync", () => {
@@ -247,11 +225,9 @@ describe("dir", () => {
         expectations();
       });
 
-      it("async", (done) => {
-        jetpack.dirAsync("a/b", { mode: "711" }).then(() => {
-          expectations();
-          done();
-        });
+      it("async", async () => {
+        await jetpack.dirAsync("a/b", { mode: "711" });
+        expectations();
       });
     });
 
@@ -260,7 +236,7 @@ describe("dir", () => {
         fse.mkdirSync("a", "777");
       };
       const expectations = () => {
-        path("a").shouldHaveMode("511");
+        assertPath("a").shouldHaveMode("511");
       };
 
       it("sync", () => {
@@ -269,12 +245,10 @@ describe("dir", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack.dirAsync("a", { mode: "511" }).then(() => {
-          expectations();
-          done();
-        });
+        await jetpack.dirAsync("a", { mode: "511" });
+        expectations();
       });
     });
 
@@ -284,7 +258,7 @@ describe("dir", () => {
       };
 
       const expectations = () => {
-        path("a").shouldHaveMode("700");
+        assertPath("a").shouldHaveMode("700");
       };
 
       it("sync", () => {
@@ -293,18 +267,16 @@ describe("dir", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack.dirAsync("a").then(() => {
-          expectations();
-          done();
-        });
+        await jetpack.dirAsync("a");
+        expectations();
       });
     });
   } else {
     describe("specyfying mode have no effect and throws no error (windows only)", () => {
       const expectations = () => {
-        path("x").shouldBeDirectory();
+        assertPath("x").shouldBeDirectory();
       };
 
       it("sync", () => {
@@ -312,11 +284,9 @@ describe("dir", () => {
         expectations();
       });
 
-      it("async", (done) => {
-        jetpack.dirAsync("x", { mode: "511" }).then(() => {
-          expectations();
-          done();
-        });
+      it("async", async () => {
+        await jetpack.dirAsync("x", { mode: "511" });
+        expectations();
       });
     });
   }
@@ -333,12 +303,21 @@ describe("dir", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined), {
+              message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -346,23 +325,41 @@ describe("dir", () => {
     describe('"criteria" object', () => {
       describe('"empty" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { empty: 1 });
-            }).to.throw(
-              `Argument "criteria.empty" passed to ${test.methodName}(path, [criteria]) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { empty: 1 }), {
+                message: `Argument "criteria.empty" passed to ${test.methodName}(path, [criteria]) must be a boolean. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { empty: 1 });
+                },
+                {
+                  message: `Argument "criteria.empty" passed to ${test.methodName}(path, [criteria]) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"mode" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { mode: true });
-            }).to.throw(
-              `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { mode: true }), {
+                message: `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { mode: true });
+                },
+                {
+                  message: `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`,
+                },
+              );
+            }
           });
         });
       });

@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("remove", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -13,10 +14,8 @@ describe("remove", () => {
       jetpack.remove("dir");
     });
 
-    it("async", (done) => {
-      jetpack.removeAsync("dir").then(() => {
-        done();
-      });
+    it("async", async () => {
+      await jetpack.removeAsync("dir");
     });
   });
 
@@ -26,7 +25,7 @@ describe("remove", () => {
     };
 
     const expectations = () => {
-      path("file.txt").shouldNotExist();
+      assertPath("file.txt").shouldNotExist();
     };
 
     it("sync", () => {
@@ -35,12 +34,10 @@ describe("remove", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.removeAsync("file.txt").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.removeAsync("file.txt");
+      expectations();
     });
   });
 
@@ -52,7 +49,7 @@ describe("remove", () => {
     };
 
     const expectations = () => {
-      path("a").shouldNotExist();
+      assertPath("a").shouldNotExist();
     };
 
     it("sync", () => {
@@ -61,12 +58,10 @@ describe("remove", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.removeAsync("a").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.removeAsync("a");
+      expectations();
     });
   });
 
@@ -78,29 +73,31 @@ describe("remove", () => {
     };
 
     const expectations = () => {
-      path("a").shouldNotExist();
+      assertPath("a").shouldNotExist();
     };
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
 
-      fse.open("a/f.txt", "w", (err, fd) => {
-        if (err) {
-          done(err);
-        } else {
-          // Unlock the file after some time.
-          setTimeout(() => {
-            fse.close(fd);
-          }, 150);
+      await new Promise<void>((resolve, reject) => {
+        fse.open("a/f.txt", "w", (err: any, fd: number) => {
+          if (err) {
+            reject(err);
+          } else {
+            // Unlock the file after some time.
+            setTimeout(() => {
+              fse.close(fd);
+            }, 150);
 
-          jetpack
-            .removeAsync("a")
-            .then(() => {
-              expectations();
-              done();
-            })
-            .catch(done);
-        }
+            jetpack
+              .removeAsync("a")
+              .then(() => {
+                expectations();
+                resolve();
+              })
+              .catch(reject);
+          }
+        });
       });
     });
   });
@@ -111,8 +108,8 @@ describe("remove", () => {
     };
 
     const expectations = () => {
-      path("a").shouldBeDirectory();
-      path("a/b").shouldNotExist();
+      assertPath("a").shouldBeDirectory();
+      assertPath("a/b").shouldNotExist();
     };
 
     it("sync", () => {
@@ -122,13 +119,11 @@ describe("remove", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.removeAsync("b").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.removeAsync("b");
+      expectations();
     });
   });
 
@@ -138,7 +133,7 @@ describe("remove", () => {
     };
 
     const expectations = () => {
-      path("a").shouldNotExist();
+      assertPath("a").shouldNotExist();
     };
 
     it("sync", () => {
@@ -148,13 +143,11 @@ describe("remove", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.removeAsync().then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.removeAsync();
+      expectations();
     });
   });
 
@@ -164,12 +157,12 @@ describe("remove", () => {
       fse.mkdirsSync("to_remove");
       fse.symlinkSync("../have_to_stay_file", "to_remove/symlink");
       // Make sure we symlinked it properly.
-      expect(fse.readFileSync("to_remove/symlink", "utf8")).to.equal("abc");
+      assert.strictEqual(fse.readFileSync("to_remove/symlink", "utf8"), "abc");
     };
 
     const expectations = () => {
-      path("have_to_stay_file").shouldBeFileWithContent("abc");
-      path("to_remove").shouldNotExist();
+      assertPath("have_to_stay_file").shouldBeFileWithContent("abc");
+      assertPath("to_remove").shouldNotExist();
     };
 
     it("sync", () => {
@@ -178,12 +171,10 @@ describe("remove", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.removeAsync("to_remove").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.removeAsync("to_remove");
+      expectations();
     });
   });
 
@@ -199,12 +190,21 @@ describe("remove", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(true);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}([path]) must be a string or an undefined. Received boolean`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(true), {
+              message: `Argument "path" passed to ${test.methodName}([path]) must be a string or an undefined. Received boolean`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(true);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}([path]) must be a string or an undefined. Received boolean`,
+              },
+            );
+          }
         });
       });
     });

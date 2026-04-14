@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("move", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -14,8 +15,8 @@ describe("move", () => {
     };
 
     const expectations = () => {
-      path("a/b.txt").shouldNotExist();
-      path("c.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b.txt").shouldNotExist();
+      assertPath("c.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -24,12 +25,10 @@ describe("move", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.moveAsync("a/b.txt", "c.txt").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.moveAsync("a/b.txt", "c.txt");
+      expectations();
     });
   });
 
@@ -40,8 +39,8 @@ describe("move", () => {
     };
 
     const expectations = () => {
-      path("a").shouldNotExist();
-      path("x/y/b/c.txt").shouldBeFileWithContent("abc");
+      assertPath("a").shouldNotExist();
+      assertPath("x/y/b/c.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -50,12 +49,10 @@ describe("move", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.moveAsync("a", "x/y").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.moveAsync("a", "x/y");
+      expectations();
     });
   });
 
@@ -65,8 +62,8 @@ describe("move", () => {
     };
 
     const expectations = () => {
-      path("a.txt").shouldNotExist();
-      path("a/b/z.txt").shouldBeFileWithContent("abc");
+      assertPath("a.txt").shouldNotExist();
+      assertPath("a/b/z.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -75,35 +72,36 @@ describe("move", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.moveAsync("a.txt", "a/b/z.txt").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.moveAsync("a.txt", "a/b/z.txt");
+      expectations();
     });
   });
 
   describe("generates nice error when source path doesn't exist", () => {
     const expectations = (err: any) => {
-      expect(err.code).to.equal("ENOENT");
-      expect(err.message).to.have.string("Path to move doesn't exist");
+      assert.strictEqual(err.code, "ENOENT");
+      assert.ok(err.message.includes("Path to move doesn't exist"));
     };
 
     it("sync", () => {
       try {
         jetpack.move("a", "b");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
-      jetpack.moveAsync("a", "b").catch((err) => {
-        expectations(err);
-        done();
-      });
+    it("async", async () => {
+      await assert.rejects(
+        () => jetpack.moveAsync("a", "b"),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -115,9 +113,9 @@ describe("move", () => {
       };
 
       const expectations = (err: any) => {
-        expect(err.code).to.equal("EEXIST");
-        expect(err.message).to.have.string("Destination path already exists");
-        path("file2.txt").shouldBeFileWithContent("xyz");
+        assert.strictEqual(err.code, "EEXIST");
+        assert.ok(err.message.includes("Destination path already exists"));
+        assertPath("file2.txt").shouldBeFileWithContent("xyz");
       };
 
       it("sync", () => {
@@ -125,17 +123,20 @@ describe("move", () => {
         try {
           jetpack.move("file1.txt", "file2.txt");
           throw new Error("Expected error to be thrown");
-        } catch (err) {
+        } catch (err: any) {
           expectations(err);
         }
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack.moveAsync("file1.txt", "file2.txt").catch((err) => {
-          expectations(err);
-          done();
-        });
+        await assert.rejects(
+          () => jetpack.moveAsync("file1.txt", "file2.txt"),
+          (err: any) => {
+            expectations(err);
+            return true;
+          },
+        );
       });
     });
 
@@ -146,8 +147,8 @@ describe("move", () => {
       };
 
       const expectations = () => {
-        path("file1.txt").shouldNotExist();
-        path("file2.txt").shouldBeFileWithContent("abc");
+        assertPath("file1.txt").shouldNotExist();
+        assertPath("file2.txt").shouldBeFileWithContent("abc");
       };
 
       it("sync", () => {
@@ -156,14 +157,10 @@ describe("move", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack
-          .moveAsync("file1.txt", "file2.txt", { overwrite: true })
-          .then(() => {
-            expectations();
-            done();
-          });
+        await jetpack.moveAsync("file1.txt", "file2.txt", { overwrite: true });
+        expectations();
       });
     });
 
@@ -174,8 +171,8 @@ describe("move", () => {
       };
 
       const expectations = () => {
-        path("file1.txt").shouldNotExist();
-        path("dir").shouldBeFileWithContent("abc");
+        assertPath("file1.txt").shouldNotExist();
+        assertPath("dir").shouldBeFileWithContent("abc");
       };
 
       it("sync", () => {
@@ -184,12 +181,10 @@ describe("move", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack.moveAsync("file1.txt", "dir", { overwrite: true }).then(() => {
-          expectations();
-          done();
-        });
+        await jetpack.moveAsync("file1.txt", "dir", { overwrite: true });
+        expectations();
       });
     });
   });
@@ -200,8 +195,8 @@ describe("move", () => {
     };
 
     const expectations = () => {
-      path("a/b.txt").shouldNotExist();
-      path("a/x.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b.txt").shouldNotExist();
+      assertPath("a/x.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -211,13 +206,11 @@ describe("move", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.moveAsync("b.txt", "x.txt").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.moveAsync("b.txt", "x.txt");
+      expectations();
     });
   });
 
@@ -233,24 +226,42 @@ describe("move", () => {
 
     describe('"from" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, "xyz");
-          }).to.throw(
-            `Argument "from" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, "xyz"), {
+              message: `Argument "from" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, "xyz");
+              },
+              {
+                message: `Argument "from" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
 
     describe('"to" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method("abc", undefined);
-          }).to.throw(
-            `Argument "to" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method("abc", undefined), {
+              message: `Argument "to" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method("abc", undefined);
+              },
+              {
+                message: `Argument "to" passed to ${test.methodName}(from, to, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -258,12 +269,24 @@ describe("move", () => {
     describe('"options" object', () => {
       describe('"overwrite" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", "xyz", { overwrite: 1 });
-            }).to.throw(
-              `Argument "options.overwrite" passed to ${test.methodName}(from, to, [options]) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", "xyz", { overwrite: 1 }),
+                {
+                  message: `Argument "options.overwrite" passed to ${test.methodName}(from, to, [options]) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", "xyz", { overwrite: 1 });
+                },
+                {
+                  message: `Argument "options.overwrite" passed to ${test.methodName}(from, to, [options]) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });

@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("read", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -14,7 +15,7 @@ describe("read", () => {
     };
 
     const expectations = (content: any) => {
-      expect(content).to.equal("abc");
+      assert.strictEqual(content, "abc");
     };
 
     it("sync", () => {
@@ -23,31 +24,25 @@ describe("read", () => {
       expectations(jetpack.read("file.txt", "utf8")); // explicitly specified
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .readAsync("file.txt") // defaults to 'utf8'
-        .then((content) => {
-          expectations(content);
-          return jetpack.readAsync("file.txt", "utf8"); // explicitly said
-        })
-        .then((content) => {
-          expectations(content);
-          done();
-        });
+      let content = await jetpack.readAsync("file.txt"); // defaults to 'utf8'
+      expectations(content);
+      content = await jetpack.readAsync("file.txt", "utf8"); // explicitly said
+      expectations(content);
     });
   });
 
   describe("reads file as a Buffer", () => {
     const preparations = () => {
-      fse.outputFileSync("file.txt", new Buffer([11, 22]));
+      fse.outputFileSync("file.txt", Buffer.from([11, 22]));
     };
 
     const expectations = (content: Buffer) => {
-      expect(Buffer.isBuffer(content)).to.equal(true);
-      expect(content.length).to.equal(2);
-      expect(content[0]).to.equal(11);
-      expect(content[1]).to.equal(22);
+      assert.strictEqual(Buffer.isBuffer(content), true);
+      assert.strictEqual(content.length, 2);
+      assert.strictEqual(content[0], 11);
+      assert.strictEqual(content[1], 22);
     };
 
     it("sync", () => {
@@ -55,12 +50,10 @@ describe("read", () => {
       expectations(jetpack.read("file.txt", "buffer"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.readAsync("file.txt", "buffer").then((content) => {
-        expectations(content);
-        done();
-      });
+      const content = await jetpack.readAsync("file.txt", "buffer");
+      expectations(content);
     });
   });
 
@@ -74,7 +67,7 @@ describe("read", () => {
     };
 
     const expectations = (content: any) => {
-      expect(content).to.eql(obj);
+      assert.deepStrictEqual(content, obj);
     };
 
     it("sync", () => {
@@ -82,12 +75,10 @@ describe("read", () => {
       expectations(jetpack.read("file.json", "json"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.readAsync("file.json", "json").then((content) => {
-        expectations(content);
-        done();
-      });
+      const content = await jetpack.readAsync("file.json", "json");
+      expectations(content);
     });
   });
 
@@ -97,7 +88,7 @@ describe("read", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.message).to.have.string("JSON parsing failed while reading");
+      assert.ok(err.message.includes("JSON parsing failed while reading"));
     };
 
     it("sync", () => {
@@ -105,17 +96,20 @@ describe("read", () => {
       try {
         jetpack.read("file.json", "json");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.readAsync("file.json", "json").catch((err) => {
-        expectations(err);
-        done();
-      });
+      await assert.rejects(
+        () => jetpack.readAsync("file.json", "json"),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -130,7 +124,7 @@ describe("read", () => {
     };
 
     const expectations = (content: any) => {
-      expect(content).to.eql(obj);
+      assert.deepStrictEqual(content, obj);
     };
 
     it("sync", () => {
@@ -138,18 +132,16 @@ describe("read", () => {
       expectations(jetpack.read("file.json", "jsonWithDates"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.readAsync("file.json", "jsonWithDates").then((content) => {
-        expectations(content);
-        done();
-      });
+      const content = await jetpack.readAsync("file.json", "jsonWithDates");
+      expectations(content);
     });
   });
 
   describe("returns undefined if file doesn't exist", () => {
     const expectations = (content: any) => {
-      expect(content).to.equal(undefined);
+      assert.strictEqual(content, undefined);
     };
 
     it("sync", () => {
@@ -158,21 +150,13 @@ describe("read", () => {
       expectations(jetpack.read("nonexistent.txt", "buffer"));
     });
 
-    it("async", (done) => {
-      jetpack
-        .readAsync("nonexistent.txt")
-        .then((content) => {
-          expectations(content);
-          return jetpack.readAsync("nonexistent.txt", "json");
-        })
-        .then((content) => {
-          expectations(content);
-          return jetpack.readAsync("nonexistent.txt", "buffer");
-        })
-        .then((content) => {
-          expectations(content);
-          done();
-        });
+    it("async", async () => {
+      let content = await jetpack.readAsync("nonexistent.txt");
+      expectations(content);
+      content = await jetpack.readAsync("nonexistent.txt", "json");
+      expectations(content);
+      content = await jetpack.readAsync("nonexistent.txt", "buffer");
+      expectations(content);
     });
   });
 
@@ -182,7 +166,7 @@ describe("read", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.code).to.equal("EISDIR");
+      assert.strictEqual(err.code, "EISDIR");
     };
 
     it("sync", () => {
@@ -190,17 +174,20 @@ describe("read", () => {
       try {
         jetpack.read("dir");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.readAsync("dir").catch((err) => {
-        expectations(err);
-        done();
-      });
+      await assert.rejects(
+        () => jetpack.readAsync("dir"),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -210,7 +197,7 @@ describe("read", () => {
     };
 
     const expectations = (data: any) => {
-      expect(data).to.equal("abc");
+      assert.strictEqual(data, "abc");
     };
 
     it("sync", () => {
@@ -219,13 +206,11 @@ describe("read", () => {
       expectations(jetContext.read("file.txt"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.readAsync("file.txt").then((data) => {
-        expectations(data);
-        done();
-      });
+      const data = await jetContext.readAsync("file.txt");
+      expectations(data);
     });
   });
 
@@ -241,29 +226,53 @@ describe("read", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, "xyz");
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, returnAs) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, "xyz"), {
+              message: `Argument "path" passed to ${test.methodName}(path, returnAs) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, "xyz");
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, returnAs) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
 
     describe('"returnAs" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method("abc", true);
-          }).to.throw(
-            `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must be a string or an undefined. Received boolean`
-          );
-          expect(() => {
-            test.method("abc", "foo");
-          }).to.throw(
-            `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must have one of values: utf8, buffer, json, jsonWithDates`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method("abc", true), {
+              message: `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must be a string or an undefined. Received boolean`,
+            });
+            await assert.rejects(() => test.method("abc", "foo"), {
+              message: `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must have one of values: utf8, buffer, json, jsonWithDates`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method("abc", true);
+              },
+              {
+                message: `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must be a string or an undefined. Received boolean`,
+              },
+            );
+            assert.throws(
+              () => {
+                test.method("abc", "foo");
+              },
+              {
+                message: `Argument "returnAs" passed to ${test.methodName}(path, returnAs) must have one of values: utf8, buffer, json, jsonWithDates`,
+              },
+            );
+          }
         });
       });
     });

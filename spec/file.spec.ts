@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 import { FSJetpack } from "../types";
 
 describe("file", () => {
@@ -11,7 +12,7 @@ describe("file", () => {
 
   describe("creates file if it doesn't exist", () => {
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("");
+      assertPath("file.txt").shouldBeFileWithContent("");
     };
 
     it("sync", () => {
@@ -19,14 +20,9 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("file.txt")
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("file.txt");
+      expectations();
     });
   });
 
@@ -36,7 +32,7 @@ describe("file", () => {
     };
 
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("abc");
+      assertPath("file.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -45,21 +41,16 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .fileAsync("file.txt")
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+      await jetpack.fileAsync("file.txt");
+      expectations();
     });
   });
 
   describe("can save file content given as string", () => {
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("ąbć");
+      assertPath("file.txt").shouldBeFileWithContent("ąbć");
     };
 
     it("sync", () => {
@@ -67,35 +58,25 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("file.txt", { content: "ąbć" })
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("file.txt", { content: "ąbć" });
+      expectations();
     });
   });
 
   describe("can save file content given as buffer", () => {
     const expectations = () => {
-      path("file").shouldBeFileWithContent(new Buffer([11, 22]));
+      assertPath("file").shouldBeFileWithContent(Buffer.from([11, 22]));
     };
 
     it("sync", () => {
-      jetpack.file("file", { content: new Buffer([11, 22]) });
+      jetpack.file("file", { content: Buffer.from([11, 22]) });
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("file", { content: new Buffer([11, 22]) })
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("file", { content: Buffer.from([11, 22]) });
+      expectations();
     });
   });
 
@@ -107,7 +88,7 @@ describe("file", () => {
 
     const expectations = () => {
       const data = JSON.parse(fse.readFileSync("file.txt", "utf8"));
-      expect(data).to.eql(obj);
+      assert.deepStrictEqual(data, obj);
     };
 
     it("sync", () => {
@@ -115,14 +96,9 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("file.txt", { content: obj })
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("file.txt", { content: obj });
+      expectations();
     });
   });
 
@@ -136,8 +112,8 @@ describe("file", () => {
       const sizeA = fse.statSync("a.json").size;
       const sizeB = fse.statSync("b.json").size;
       const sizeC = fse.statSync("c.json").size;
-      expect(sizeB).to.be.above(sizeA);
-      expect(sizeC).to.be.above(sizeB);
+      assert.ok(sizeB > sizeA);
+      assert.ok(sizeC > sizeB);
     };
 
     it("sync", () => {
@@ -147,20 +123,11 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("a.json", { content: obj, jsonIndent: 0 })
-        .then(() => {
-          return jetpack.fileAsync("b.json", { content: obj }); // Default indent = 2
-        })
-        .then(() => {
-          return jetpack.fileAsync("c.json", { content: obj, jsonIndent: 4 });
-        })
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("a.json", { content: obj, jsonIndent: 0 });
+      await jetpack.fileAsync("b.json", { content: obj }); // Default indent = 2
+      await jetpack.fileAsync("c.json", { content: obj, jsonIndent: 4 });
+      expectations();
     });
   });
 
@@ -170,7 +137,7 @@ describe("file", () => {
     };
 
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("123");
+      assertPath("file.txt").shouldBeFileWithContent("123");
     };
 
     it("sync", () => {
@@ -179,15 +146,10 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .fileAsync("file.txt", { content: "123" })
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+      await jetpack.fileAsync("file.txt", { content: "123" });
+      expectations();
     });
   });
 
@@ -197,7 +159,7 @@ describe("file", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.message).to.have.string("exists but is not a file.");
+      assert.ok(err.message.includes("exists but is not a file."));
     };
 
     it("sync", () => {
@@ -205,26 +167,26 @@ describe("file", () => {
       try {
         jetpack.file("a");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .fileAsync("a")
-        .catch((err) => {
+      await assert.rejects(
+        () => jetpack.fileAsync("a"),
+        (err: any) => {
           expectations(err);
-          done();
-        })
-        .catch(done);
+          return true;
+        },
+      );
     });
   });
 
   describe("if directory for file doesn't exist creates it as well", () => {
     const expectations = () => {
-      path("a/b/c.txt").shouldBeFileWithContent("");
+      assertPath("a/b/c.txt").shouldBeFileWithContent("");
     };
 
     it("sync", () => {
@@ -232,40 +194,30 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("a/b/c.txt")
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      await jetpack.fileAsync("a/b/c.txt");
+      expectations();
     });
   });
 
   describe("returns currently used jetpack instance", () => {
     const expectations = (jetpackContext: FSJetpack) => {
-      expect(jetpackContext).to.equal(jetpack);
+      assert.strictEqual(jetpackContext, jetpack);
     };
 
     it("sync", () => {
       expectations(jetpack.file("file.txt"));
     });
 
-    it("async", (done) => {
-      jetpack
-        .fileAsync("file.txt")
-        .then((jetpackContext) => {
-          expectations(jetpackContext);
-          done();
-        })
-        .catch(done);
+    it("async", async () => {
+      const jetpackContext = await jetpack.fileAsync("file.txt");
+      expectations(jetpackContext);
     });
   });
 
   describe("respects internal CWD of jetpack instance", () => {
     const expectations = () => {
-      path("a/b.txt").shouldBeFileWithContent("");
+      assertPath("a/b.txt").shouldBeFileWithContent("");
     };
 
     it("sync", () => {
@@ -274,22 +226,17 @@ describe("file", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
-      jetContext
-        .fileAsync("b.txt")
-        .then(() => {
-          expectations();
-          done();
-        })
-        .catch(done);
+      await jetContext.fileAsync("b.txt");
+      expectations();
     });
   });
 
   if (process.platform !== "win32") {
     describe("sets mode of newly created file (unix only)", () => {
       const expectations = () => {
-        path("file.txt").shouldHaveMode("711");
+        assertPath("file.txt").shouldHaveMode("711");
       };
 
       it("sync, mode passed as string", () => {
@@ -302,24 +249,14 @@ describe("file", () => {
         expectations();
       });
 
-      it("async, mode passed as string", (done) => {
-        jetpack
-          .fileAsync("file.txt", { mode: "711" })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+      it("async, mode passed as string", async () => {
+        await jetpack.fileAsync("file.txt", { mode: "711" });
+        expectations();
       });
 
-      it("async, mode passed as number", (done) => {
-        jetpack
-          .fileAsync("file.txt", { mode: 0o711 })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+      it("async, mode passed as number", async () => {
+        await jetpack.fileAsync("file.txt", { mode: 0o711 });
+        expectations();
       });
     });
 
@@ -329,7 +266,7 @@ describe("file", () => {
       };
 
       const expectations = () => {
-        path("file.txt").shouldHaveMode("511");
+        assertPath("file.txt").shouldHaveMode("511");
       };
 
       it("sync", () => {
@@ -338,15 +275,10 @@ describe("file", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack
-          .fileAsync("file.txt", { mode: "511" })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+        await jetpack.fileAsync("file.txt", { mode: "511" });
+        expectations();
       });
     });
 
@@ -356,7 +288,7 @@ describe("file", () => {
       };
 
       const expectations = () => {
-        path("file.txt").shouldHaveMode("700");
+        assertPath("file.txt").shouldHaveMode("700");
       };
 
       it("sync, ensure exists", () => {
@@ -371,26 +303,16 @@ describe("file", () => {
         expectations();
       });
 
-      it("async, ensure exists", (done) => {
+      it("async, ensure exists", async () => {
         preparations();
-        jetpack
-          .fileAsync("file.txt")
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+        await jetpack.fileAsync("file.txt");
+        expectations();
       });
 
-      it("async, ensure content", (done) => {
+      it("async, ensure content", async () => {
         preparations();
-        jetpack
-          .fileAsync("file.txt", { content: "abc" })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+        await jetpack.fileAsync("file.txt", { content: "abc" });
+        expectations();
       });
     });
   } else {
@@ -399,13 +321,8 @@ describe("file", () => {
         jetpack.file("file.txt", { mode: "711" });
       });
 
-      it("async", (done) => {
-        jetpack
-          .fileAsync("file.txt", { mode: "711" })
-          .then(() => {
-            done();
-          })
-          .catch(done);
+      it("async", async () => {
+        await jetpack.fileAsync("file.txt", { mode: "711" });
       });
     });
   }
@@ -422,12 +339,21 @@ describe("file", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined), {
+              message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -435,34 +361,64 @@ describe("file", () => {
     describe('"criteria" object', () => {
       describe('"content" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { content: 1 });
-            }).to.throw(
-              `Argument "criteria.content" passed to ${test.methodName}(path, [criteria]) must be a string or a buffer or an object or an array. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { content: 1 }), {
+                message: `Argument "criteria.content" passed to ${test.methodName}(path, [criteria]) must be a string or a buffer or an object or an array. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { content: 1 });
+                },
+                {
+                  message: `Argument "criteria.content" passed to ${test.methodName}(path, [criteria]) must be a string or a buffer or an object or an array. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"jsonIndent" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { jsonIndent: true });
-            }).to.throw(
-              `Argument "criteria.jsonIndent" passed to ${test.methodName}(path, [criteria]) must be a number. Received boolean`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { jsonIndent: true }),
+                {
+                  message: `Argument "criteria.jsonIndent" passed to ${test.methodName}(path, [criteria]) must be a number. Received boolean`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { jsonIndent: true });
+                },
+                {
+                  message: `Argument "criteria.jsonIndent" passed to ${test.methodName}(path, [criteria]) must be a number. Received boolean`,
+                },
+              );
+            }
           });
         });
       });
       describe('"mode" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { mode: true });
-            }).to.throw(
-              `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { mode: true }), {
+                message: `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { mode: true });
+                },
+                {
+                  message: `Argument "criteria.mode" passed to ${test.methodName}(path, [criteria]) must be a string or a number. Received boolean`,
+                },
+              );
+            }
           });
         });
       });

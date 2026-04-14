@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 import { InspectResult } from "../types";
 
 describe("find", () => {
@@ -16,7 +17,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -24,12 +25,10 @@ describe("find", () => {
       expectations(jetpack.find("a", { matching: "*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a", { matching: "*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("a", { matching: "*.txt" });
+      expectations(found);
     });
   });
 
@@ -41,7 +40,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/file.bin", "a/b/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -49,12 +48,10 @@ describe("find", () => {
       expectations(jetpack.find("a"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a").then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("a");
+      expectations(found);
     });
   });
 
@@ -67,7 +64,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["x/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -75,14 +72,13 @@ describe("find", () => {
       expectations(jetpack.find("x", { matching: "*.txt", recursive: false }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("x", { matching: "*.txt", recursive: false })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("x", {
+        matching: "*.txt",
+        recursive: false,
+      });
+      expectations(found);
     });
   });
 
@@ -93,7 +89,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -101,12 +97,10 @@ describe("find", () => {
       expectations(jetpack.find({ matching: "*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync({ matching: "*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync({ matching: "*.txt" });
+      expectations(found);
     });
   });
 
@@ -116,7 +110,7 @@ describe("find", () => {
     };
 
     const expectations = (found: string[]) => {
-      expect(found).to.eql([]);
+      assert.deepStrictEqual(found, []);
     };
 
     it("sync", () => {
@@ -124,12 +118,10 @@ describe("find", () => {
       expectations(jetpack.find("a", { matching: "*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a", { matching: "*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("a", { matching: "*.txt" });
+      expectations(found);
     });
   });
 
@@ -148,7 +140,7 @@ describe("find", () => {
         "a/x/y/z",
       ]);
       found.sort();
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -156,12 +148,10 @@ describe("find", () => {
       expectations(jetpack.find("a", { matching: ["*.txt", "z"] }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a", { matching: ["*.txt", "z"] }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("a", { matching: ["*.txt", "z"] });
+      expectations(found);
     });
   });
 
@@ -173,7 +163,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["x/y/a/b/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -181,12 +171,10 @@ describe("find", () => {
       expectations(jetpack.find("x/y/a", { matching: "b/*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("x/y/a", { matching: "b/*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("x/y/a", { matching: "b/*.txt" });
+      expectations(found);
     });
   });
 
@@ -198,7 +186,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["x/y/file.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -206,12 +194,10 @@ describe("find", () => {
       expectations(jetpack.find("x/y", { matching: "./file.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("x/y", { matching: "./file.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("x/y", { matching: "./file.txt" });
+      expectations(found);
     });
   });
 
@@ -225,7 +211,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["x/y/a/b"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -239,26 +225,22 @@ describe("find", () => {
             "!a/y",
             "!./a/z",
           ],
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("x/y", {
-          matching: [
-            "a/*",
-            // Three different pattern types to test:
-            "!x",
-            "!a/y",
-            "!./a/z",
-          ],
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("x/y", {
+        matching: [
+          "a/*",
+          // Three different pattern types to test:
+          "!x",
+          "!a/y",
+          "!./a/z",
+        ],
+      });
+      expectations(found);
     });
   });
 
@@ -281,7 +263,7 @@ describe("find", () => {
         "birthTime",
         "absolutePath",
       ];
-      expect(Object.keys(obj).sort()).to.eql(fields.sort());
+      assert.deepStrictEqual(Object.keys(obj).sort(), fields.sort());
     };
 
     const expectations = (found: string[]) => {
@@ -289,7 +271,7 @@ describe("find", () => {
         "x/y/file.txt",
         "x/y/other_file.txt",
       ]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -301,39 +283,31 @@ describe("find", () => {
             expectFilterObjFields(fileInspect);
             return fileInspect.size <= 3;
           },
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("x/y", {
-          matching: "*.txt",
-          filter: (fileInspect) => {
-            expectFilterObjFields(fileInspect);
-            return fileInspect.size <= 3;
-          },
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("x/y", {
+        matching: "*.txt",
+        filter: (fileInspect) => {
+          expectFilterObjFields(fileInspect);
+          return fileInspect.size <= 3;
+        },
+      });
+      expectations(found);
     });
 
-    it("async (filter can also return promise)", (done) => {
+    it("async (filter can also return promise)", async () => {
       preparations();
-      jetpack
-        .findAsync("x/y", {
-          matching: "*.txt",
-          filter: (fileInspect) => {
-            return Promise.resolve(fileInspect.size <= 3);
-          },
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("x/y", {
+        matching: "*.txt",
+        filter: (fileInspect) => {
+          return Promise.resolve(fileInspect.size <= 3);
+        },
+      });
+      expectations(found);
     });
   });
 
@@ -343,7 +317,7 @@ describe("find", () => {
     };
 
     const expectations = (found: string[]) => {
-      expect(found).to.eql([]);
+      assert.deepStrictEqual(found, []);
     };
 
     it("sync", () => {
@@ -354,23 +328,19 @@ describe("find", () => {
           filter: (fileInspect) => {
             throw "filter shouldn't be called!";
           },
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("x/y", {
-          matching: "*.md",
-          filter: (fileInspect) => {
-            throw "filter shouldn't be called!";
-          },
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("x/y", {
+        matching: "*.md",
+        filter: (fileInspect) => {
+          throw "filter shouldn't be called!";
+        },
+      });
+      expectations(found);
     });
   });
 
@@ -382,7 +352,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/foo1"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -390,12 +360,10 @@ describe("find", () => {
       expectations(jetpack.find("a", { matching: "foo*" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a", { matching: "foo*" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("a", { matching: "foo*" });
+      expectations(found);
     });
   });
 
@@ -409,7 +377,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const expected = ["file", "symfile"];
-      expect(found.sort()).to.eql(expected.sort());
+      assert.deepStrictEqual(found.sort(), expected.sort());
     };
 
     it("sync", () => {
@@ -417,12 +385,10 @@ describe("find", () => {
       expectations(jetpack.find({ matching: "*" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync({ matching: "*" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync({ matching: "*" });
+      expectations(found);
     });
   });
 
@@ -430,14 +396,17 @@ describe("find", () => {
     const preparations = () => {
       fse.outputFileSync("dir1/dir2/file.txt", "abc");
       jetpack.symlink("../dir1", "foo/symlink_to_dir1");
-      expect(jetpack.read("foo/symlink_to_dir1/dir2/file.txt")).to.eql("abc");
+      assert.deepStrictEqual(
+        jetpack.read("foo/symlink_to_dir1/dir2/file.txt"),
+        "abc",
+      );
     };
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep([
         "foo/symlink_to_dir1/dir2/file.txt",
       ]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -445,12 +414,10 @@ describe("find", () => {
       expectations(jetpack.find("foo", { matching: "file*" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("foo", { matching: "file*" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("foo", { matching: "file*" });
+      expectations(found);
     });
   });
 
@@ -462,7 +429,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["dir/dir/file1.txt"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -470,12 +437,10 @@ describe("find", () => {
       expectations(jetpack.find("dir", { matching: "*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("dir", { matching: "*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetpack.findAsync("dir", { matching: "*.txt" });
+      expectations(found);
     });
   });
 
@@ -487,7 +452,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/foo1", "a/b/foo2"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -496,22 +461,17 @@ describe("find", () => {
         jetpack.find("a", {
           matching: "foo*",
           directories: true,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("a", {
-          matching: "foo*",
-          directories: true,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        })
-        .catch(done);
+      const found = await jetpack.findAsync("a", {
+        matching: "foo*",
+        directories: true,
+      });
+      expectations(found);
     });
   });
 
@@ -523,7 +483,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/b/foo2"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -533,23 +493,18 @@ describe("find", () => {
           matching: "foo*",
           files: false,
           directories: true,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("a", {
-          matching: "foo*",
-          files: false,
-          directories: true,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        })
-        .catch(done);
+      const found = await jetpack.findAsync("a", {
+        matching: "foo*",
+        files: false,
+        directories: true,
+      });
+      expectations(found);
     });
   });
 
@@ -561,7 +516,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["a/x"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -570,22 +525,17 @@ describe("find", () => {
         jetpack.find("a", {
           matching: ["!y"],
           directories: true,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("a", {
-          matching: ["!y"],
-          directories: true,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        })
-        .catch(done);
+      const found = await jetpack.findAsync("a", {
+        matching: ["!y"],
+        directories: true,
+      });
+      expectations(found);
     });
   });
 
@@ -596,7 +546,7 @@ describe("find", () => {
     };
 
     const expectations = (found: string[]) => {
-      expect(found).to.eql([]);
+      assert.deepStrictEqual(found, []);
     };
 
     it("sync", () => {
@@ -606,30 +556,26 @@ describe("find", () => {
           matching: "foo*",
           files: false,
           directories: false,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync("a", {
-          matching: "foo*",
-          files: false,
-          directories: false,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync("a", {
+        matching: "foo*",
+        files: false,
+        directories: false,
+      });
+      expectations(found);
     });
   });
 
   describe("throws if path doesn't exist", () => {
     const expectations = (err: any) => {
-      expect(err.code).to.equal("ENOENT");
-      expect(err.message).to.have.string(
-        "Path you want to find stuff in doesn't exist"
+      assert.strictEqual(err.code, "ENOENT");
+      assert.ok(
+        err.message.includes("Path you want to find stuff in doesn't exist"),
       );
     };
 
@@ -637,16 +583,19 @@ describe("find", () => {
       try {
         jetpack.find("a", { matching: "*.txt" });
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
-      jetpack.findAsync("a", { matching: "*.txt" }).catch((err) => {
-        expectations(err);
-        done();
-      });
+    it("async", async () => {
+      await assert.rejects(
+        () => jetpack.findAsync("a", { matching: "*.txt" }),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -656,9 +605,11 @@ describe("find", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.code).to.equal("ENOTDIR");
-      expect(err.message).to.have.string(
-        "Path you want to find stuff in must be a directory"
+      assert.strictEqual(err.code, "ENOTDIR");
+      assert.ok(
+        err.message.includes(
+          "Path you want to find stuff in must be a directory",
+        ),
       );
     };
 
@@ -667,17 +618,20 @@ describe("find", () => {
       try {
         jetpack.find("a/b", { matching: "*.txt" });
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.findAsync("a/b", { matching: "*.txt" }).catch((err) => {
-        expectations(err);
-        done();
-      });
+      await assert.rejects(
+        () => jetpack.findAsync("a/b", { matching: "*.txt" }),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -688,7 +642,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep(["b/c/d.txt"]); // NOT a/b/c/d.txt
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -697,13 +651,11 @@ describe("find", () => {
       expectations(jetContext.find("b", { matching: "*.txt" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.findAsync("b", { matching: "*.txt" }).then((found) => {
-        expectations(found);
-        done();
-      });
+      const found = await jetContext.findAsync("b", { matching: "*.txt" });
+      expectations(found);
     });
   });
 
@@ -716,7 +668,7 @@ describe("find", () => {
 
     const expectations = (found: string[]) => {
       const normalizedPaths = helper.osSep([".dir", ".dir/.file"]);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -725,21 +677,17 @@ describe("find", () => {
         jetpack.find({
           matching: [".dir", ".file", "!.foo/**"],
           directories: true,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync({
-          matching: [".dir", ".file", "!.foo/**"],
-          directories: true,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        });
+      const found = await jetpack.findAsync({
+        matching: [".dir", ".file", "!.foo/**"],
+        directories: true,
+      });
+      expectations(found);
     });
   });
 
@@ -751,7 +699,7 @@ describe("find", () => {
     const expectations = (found: string[]) => {
       const paths = ["FOO", "FOO/BAR"];
       const normalizedPaths = helper.osSep(paths);
-      expect(found).to.eql(normalizedPaths);
+      assert.deepStrictEqual(found, normalizedPaths);
     };
 
     it("sync", () => {
@@ -761,23 +709,18 @@ describe("find", () => {
           matching: ["foo", "bar"],
           directories: true,
           ignoreCase: true,
-        })
+        }),
       );
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .findAsync({
-          matching: ["foo", "bar"],
-          directories: true,
-          ignoreCase: true,
-        })
-        .then((found) => {
-          expectations(found);
-          done();
-        })
-        .catch(done);
+      const found = await jetpack.findAsync({
+        matching: ["foo", "bar"],
+        directories: true,
+        ignoreCase: true,
+      });
+      expectations(found);
     });
   });
 
@@ -793,12 +736,21 @@ describe("find", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, {});
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}([path], options) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, {}), {
+              message: `Argument "path" passed to ${test.methodName}([path], options) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, {});
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}([path], options) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -806,56 +758,107 @@ describe("find", () => {
     describe('"options" object', () => {
       describe('"matching" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method({ matching: 1 });
-            }).to.throw(
-              `Argument "options.matching" passed to ${test.methodName}([path], options) must be a string or an array of string. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method({ matching: 1 }), {
+                message: `Argument "options.matching" passed to ${test.methodName}([path], options) must be a string or an array of string. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method({ matching: 1 });
+                },
+                {
+                  message: `Argument "options.matching" passed to ${test.methodName}([path], options) must be a string or an array of string. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"files" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { files: 1 });
-            }).to.throw(
-              `Argument "options.files" passed to ${test.methodName}([path], options) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { files: 1 }), {
+                message: `Argument "options.files" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { files: 1 });
+                },
+                {
+                  message: `Argument "options.files" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"directories" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { directories: 1 });
-            }).to.throw(
-              `Argument "options.directories" passed to ${test.methodName}([path], options) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { directories: 1 }),
+                {
+                  message: `Argument "options.directories" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { directories: 1 });
+                },
+                {
+                  message: `Argument "options.directories" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"recursive" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { recursive: 1 });
-            }).to.throw(
-              `Argument "options.recursive" passed to ${test.methodName}([path], options) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { recursive: 1 }), {
+                message: `Argument "options.recursive" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { recursive: 1 });
+                },
+                {
+                  message: `Argument "options.recursive" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"ignoreCase" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { ignoreCase: 1 });
-            }).to.throw(
-              `Argument "options.ignoreCase" passed to ${test.methodName}([path], options) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { ignoreCase: 1 }),
+                {
+                  message: `Argument "options.ignoreCase" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { ignoreCase: 1 });
+                },
+                {
+                  message: `Argument "options.ignoreCase" passed to ${test.methodName}([path], options) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });

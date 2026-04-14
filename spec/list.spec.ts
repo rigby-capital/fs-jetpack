@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("list", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -17,7 +18,12 @@ describe("list", () => {
     };
 
     const expectations = (data: string[]) => {
-      expect(data).to.eql(["empty", "empty.txt", "file.txt", "subdir"]);
+      assert.deepStrictEqual(data, [
+        "empty",
+        "empty.txt",
+        "file.txt",
+        "subdir",
+      ]);
     };
 
     it("sync", () => {
@@ -25,12 +31,10 @@ describe("list", () => {
       expectations(jetpack.list("dir"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.listAsync("dir").then((listAsync) => {
-        expectations(listAsync);
-        done();
-      });
+      const listAsync = await jetpack.listAsync("dir");
+      expectations(listAsync);
     });
   });
 
@@ -41,7 +45,7 @@ describe("list", () => {
     };
 
     const expectations = (data: string[]) => {
-      expect(data).to.eql(["a", "b"]);
+      assert.deepStrictEqual(data, ["a", "b"]);
     };
 
     it("sync", () => {
@@ -50,30 +54,26 @@ describe("list", () => {
       expectations(jetContext.list());
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("dir");
       preparations();
-      jetContext.listAsync().then((list) => {
-        expectations(list);
-        done();
-      });
+      const list = await jetContext.listAsync();
+      expectations(list);
     });
   });
 
   describe("returns undefined if path doesn't exist", () => {
     const expectations = (data: any) => {
-      expect(data).to.equal(undefined);
+      assert.strictEqual(data, undefined);
     };
 
     it("sync", () => {
       expectations(jetpack.list("nonexistent"));
     });
 
-    it("async", (done) => {
-      jetpack.listAsync("nonexistent").then((data) => {
-        expectations(data);
-        done();
-      });
+    it("async", async () => {
+      const data = await jetpack.listAsync("nonexistent");
+      expectations(data);
     });
   });
 
@@ -83,7 +83,7 @@ describe("list", () => {
     };
 
     const expectations = (err: any) => {
-      expect(err.code).to.equal("ENOTDIR");
+      assert.strictEqual(err.code, "ENOTDIR");
     };
 
     it("sync", () => {
@@ -91,17 +91,20 @@ describe("list", () => {
       try {
         jetpack.list("file.txt");
         throw new Error("Expected error to be thrown");
-      } catch (err) {
+      } catch (err: any) {
         expectations(err);
       }
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.listAsync("file.txt").catch((err) => {
-        expectations(err);
-        done();
-      });
+      await assert.rejects(
+        () => jetpack.listAsync("file.txt"),
+        (err: any) => {
+          expectations(err);
+          return true;
+        },
+      );
     });
   });
 
@@ -111,7 +114,7 @@ describe("list", () => {
     };
 
     const expectations = (data: string[]) => {
-      expect(data).to.eql(["c.txt"]);
+      assert.deepStrictEqual(data, ["c.txt"]);
     };
 
     it("sync", () => {
@@ -120,13 +123,11 @@ describe("list", () => {
       expectations(jetContext.list("b"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.listAsync("b").then((data) => {
-        expectations(data);
-        done();
-      });
+      const data = await jetContext.listAsync("b");
+      expectations(data);
     });
   });
 
@@ -142,12 +143,21 @@ describe("list", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(true);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path) must be a string or an undefined. Received boolean`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(true), {
+              message: `Argument "path" passed to ${test.methodName}(path) must be a string or an undefined. Received boolean`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(true);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path) must be a string or an undefined. Received boolean`,
+              },
+            );
+          }
         });
       });
     });

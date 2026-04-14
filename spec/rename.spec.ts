@@ -1,9 +1,10 @@
-import * as pathUtil from "path";
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import * as pathUtil from "node:path";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("rename", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -15,8 +16,8 @@ describe("rename", () => {
     };
 
     const expectations = () => {
-      path("a/b.txt").shouldNotExist();
-      path("a/x.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b.txt").shouldNotExist();
+      assertPath("a/x.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -25,12 +26,10 @@ describe("rename", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.renameAsync("a/b.txt", "x.txt").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.renameAsync("a/b.txt", "x.txt");
+      expectations();
     });
   });
 
@@ -40,8 +39,8 @@ describe("rename", () => {
     };
 
     const expectations = () => {
-      path("a/b").shouldNotExist();
-      path("a/x").shouldBeDirectory();
+      assertPath("a/b").shouldNotExist();
+      assertPath("a/x").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -50,12 +49,10 @@ describe("rename", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.renameAsync("a/b", "x").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.renameAsync("a/b", "x");
+      expectations();
     });
   });
 
@@ -67,9 +64,9 @@ describe("rename", () => {
       };
 
       const expectations = (err: any) => {
-        expect(err.code).to.equal("EEXIST");
-        expect(err.message).to.have.string("Destination path already exists");
-        path("file2.txt").shouldBeFileWithContent("xyz");
+        assert.strictEqual(err.code, "EEXIST");
+        assert.ok(err.message.includes("Destination path already exists"));
+        assertPath("file2.txt").shouldBeFileWithContent("xyz");
       };
 
       it("sync", () => {
@@ -77,17 +74,20 @@ describe("rename", () => {
         try {
           jetpack.rename("file1.txt", "file2.txt");
           throw new Error("Expected error to be thrown");
-        } catch (err) {
+        } catch (err: any) {
           expectations(err);
         }
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack.renameAsync("file1.txt", "file2.txt").catch((err) => {
-          expectations(err);
-          done();
-        });
+        await assert.rejects(
+          () => jetpack.renameAsync("file1.txt", "file2.txt"),
+          (err: any) => {
+            expectations(err);
+            return true;
+          },
+        );
       });
     });
 
@@ -98,8 +98,8 @@ describe("rename", () => {
       };
 
       const expectations = () => {
-        path("file1.txt").shouldNotExist();
-        path("file2.txt").shouldBeFileWithContent("abc");
+        assertPath("file1.txt").shouldNotExist();
+        assertPath("file2.txt").shouldBeFileWithContent("abc");
       };
 
       it("sync", () => {
@@ -108,14 +108,12 @@ describe("rename", () => {
         expectations();
       });
 
-      it("async", (done) => {
+      it("async", async () => {
         preparations();
-        jetpack
-          .renameAsync("file1.txt", "file2.txt", { overwrite: true })
-          .then(() => {
-            expectations();
-            done();
-          });
+        await jetpack.renameAsync("file1.txt", "file2.txt", {
+          overwrite: true,
+        });
+        expectations();
       });
     });
   });
@@ -127,8 +125,8 @@ describe("rename", () => {
     };
 
     const expectations = () => {
-      path("file1.txt").shouldNotExist();
-      path("dir").shouldBeFileWithContent("abc");
+      assertPath("file1.txt").shouldNotExist();
+      assertPath("dir").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -137,12 +135,10 @@ describe("rename", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.renameAsync("file1.txt", "dir", { overwrite: true }).then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.renameAsync("file1.txt", "dir", { overwrite: true });
+      expectations();
     });
   });
 
@@ -152,8 +148,8 @@ describe("rename", () => {
     };
 
     const expectations = () => {
-      path("a/b").shouldNotExist();
-      path("a/x").shouldBeDirectory();
+      assertPath("a/b").shouldNotExist();
+      assertPath("a/x").shouldBeDirectory();
     };
 
     it("sync", () => {
@@ -163,13 +159,11 @@ describe("rename", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.renameAsync("b", "x").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.renameAsync("b", "x");
+      expectations();
     });
   });
 
@@ -185,12 +179,21 @@ describe("rename", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, "xyz");
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, "xyz"), {
+              message: `Argument "path" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, "xyz");
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -198,12 +201,21 @@ describe("rename", () => {
     describe('"newName" argument', () => {
       describe("type check", () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", undefined);
-            }).to.throw(
-              `Argument "newName" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", undefined), {
+                message: `Argument "newName" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", undefined);
+                },
+                {
+                  message: `Argument "newName" passed to ${test.methodName}(path, newName, [options]) must be a string. Received undefined`,
+                },
+              );
+            }
           });
         });
       });
@@ -211,12 +223,21 @@ describe("rename", () => {
       describe("shouldn't be path, just a filename", () => {
         const pathToTest = pathUtil.join("new-name", "with-a-slash");
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", pathToTest);
-            }).to.throw(
-              `Argument "newName" passed to ${test.methodName}(path, newName, [options]) should be a filename, not a path. Received "${pathToTest}"`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", pathToTest), {
+                message: `Argument "newName" passed to ${test.methodName}(path, newName, [options]) should be a filename, not a path. Received "${pathToTest}"`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", pathToTest);
+                },
+                {
+                  message: `Argument "newName" passed to ${test.methodName}(path, newName, [options]) should be a filename, not a path. Received "${pathToTest}"`,
+                },
+              );
+            }
           });
         });
       });
@@ -225,12 +246,24 @@ describe("rename", () => {
     describe('"options" object', () => {
       describe('"overwrite" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", "xyz", { overwrite: 1 });
-            }).to.throw(
-              `Argument "options.overwrite" passed to ${test.methodName}(path, newName, [options]) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", "xyz", { overwrite: 1 }),
+                {
+                  message: `Argument "options.overwrite" passed to ${test.methodName}(path, newName, [options]) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", "xyz", { overwrite: 1 });
+                },
+                {
+                  message: `Argument "options.overwrite" passed to ${test.methodName}(path, newName, [options]) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });

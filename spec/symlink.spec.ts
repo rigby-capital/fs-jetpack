@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("symlink", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -10,8 +11,8 @@ describe("symlink", () => {
 
   describe("can create a symlink", () => {
     const expectations = () => {
-      expect(fse.lstatSync("symlink").isSymbolicLink()).to.equal(true);
-      expect(fse.readlinkSync("symlink")).to.equal("some_path");
+      assert.strictEqual(fse.lstatSync("symlink").isSymbolicLink(), true);
+      assert.strictEqual(fse.readlinkSync("symlink"), "some_path");
     };
 
     it("sync", () => {
@@ -19,17 +20,15 @@ describe("symlink", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.symlinkAsync("some_path", "symlink").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.symlinkAsync("some_path", "symlink");
+      expectations();
     });
   });
 
   describe("can create nonexistent parent directories", () => {
     const expectations = () => {
-      expect(fse.lstatSync("a/b/symlink").isSymbolicLink()).to.equal(true);
+      assert.strictEqual(fse.lstatSync("a/b/symlink").isSymbolicLink(), true);
     };
 
     it("sync", () => {
@@ -37,11 +36,9 @@ describe("symlink", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.symlinkAsync("whatever", "a/b/symlink").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.symlinkAsync("whatever", "a/b/symlink");
+      expectations();
     });
   });
 
@@ -51,7 +48,7 @@ describe("symlink", () => {
     };
 
     const expectations = () => {
-      expect(fse.lstatSync("a/b/symlink").isSymbolicLink()).to.equal(true);
+      assert.strictEqual(fse.lstatSync("a/b/symlink").isSymbolicLink(), true);
     };
 
     it("sync", () => {
@@ -61,13 +58,11 @@ describe("symlink", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a/b");
       preparations();
-      jetContext.symlinkAsync("whatever", "symlink").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.symlinkAsync("whatever", "symlink");
+      expectations();
     });
   });
 
@@ -83,24 +78,42 @@ describe("symlink", () => {
 
     describe('"symlinkValue" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, "abc");
-          }).to.throw(
-            `Argument "symlinkValue" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, "abc"), {
+              message: `Argument "symlinkValue" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, "abc");
+              },
+              {
+                message: `Argument "symlinkValue" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method("xyz", undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method("xyz", undefined), {
+              message: `Argument "path" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method("xyz", undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(symlinkValue, path) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });

@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import fs from "node:fs";
 
 const areBuffersEqual = (bufA: Buffer, bufB: Buffer) => {
   const len = bufA.length;
@@ -20,7 +20,7 @@ export default (path: string) => {
       try {
         fs.statSync(path);
         message = `Path ${path} should NOT exist`;
-      } catch (err) {
+      } catch (err: any) {
         if (err.code !== "ENOENT") {
           throw err;
         }
@@ -38,7 +38,7 @@ export default (path: string) => {
         if (!stat.isDirectory()) {
           message = `Path ${path} should be a directory`;
         }
-      } catch (err) {
+      } catch (err: any) {
         if (err.code === "ENOENT") {
           message = `Path ${path} should exist`;
         } else {
@@ -64,7 +64,7 @@ export default (path: string) => {
           if (!areBuffersEqual(expectedContent, content)) {
             generateMessage(
               expectedContent.toString("hex"),
-              content.toString("hex")
+              content.toString("hex"),
             );
           }
         } else {
@@ -73,7 +73,7 @@ export default (path: string) => {
             generateMessage(expectedContent, content);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         if (err.code === "ENOENT") {
           message = `File ${path} should exist`;
         } else {
@@ -95,7 +95,7 @@ export default (path: string) => {
         if (mode !== expectedMode) {
           message = `Path ${path} should have mode "${expectedMode}" but have instead "${mode}"`;
         }
-      } catch (err) {
+      } catch (err: any) {
         if (err.code === "ENOENT") {
           message = `Path ${path} should exist`;
         } else {

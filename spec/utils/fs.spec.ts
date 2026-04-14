@@ -1,11 +1,16 @@
-import * as fsNode from "fs";
-import { expect } from "chai";
-const fs: any = require("../../lib/utils/fs");
+import fs from "node:fs";
+import fsp from "node:fs/promises";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 
-describe("promised fs", () => {
-  it("contains all the same keys as the node fs module", () => {
-    const originalKeys = Object.keys(fsNode);
-    const adaptedKeys = Object.keys(fs);
-    expect(adaptedKeys).to.deep.equal(originalKeys);
+describe("node:fs usage", () => {
+  it("node:fs module is available", () => {
+    assert.strictEqual(typeof fs.readFileSync, "function");
+    assert.strictEqual(typeof fs.writeFileSync, "function");
+  });
+
+  it("node:fs/promises module is available", () => {
+    assert.strictEqual(typeof fsp.readFile, "function");
+    assert.strictEqual(typeof fsp.writeFile, "function");
   });
 });

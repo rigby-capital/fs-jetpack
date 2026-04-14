@@ -1,9 +1,9 @@
-import * as fse from "fs-extra";
-import * as pathUtil from "path";
-import { expect } from "chai";
-import path from "../assert_path";
-import helper from "../helper";
-const walker: any = require("../../lib/utils/tree_walker");
+import fse from "fs-extra";
+import * as pathUtil from "node:path";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import helper from "../helper.js";
+import * as walker from "../../src/utils/tree_walker.js";
 
 const sortByPath = (arr: any[]) => {
   arr.sort((a: any, b: any) => {
@@ -68,7 +68,7 @@ describe("tree walker", () => {
           },
         },
       ];
-      expect(sortByPath(data)).to.eql(sortByPath(expectedData));
+      assert.deepStrictEqual(sortByPath(data), sortByPath(expectedData));
     };
 
     it("sync", () => {
@@ -81,21 +81,24 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("a");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        {},
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          {},
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
@@ -157,7 +160,7 @@ describe("tree walker", () => {
           },
         },
       ];
-      expect(sortByPath(data)).to.eql(sortByPath(expectedData));
+      assert.deepStrictEqual(sortByPath(data), sortByPath(expectedData));
     };
 
     it("sync", () => {
@@ -170,21 +173,24 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("a");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        {},
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          {},
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
@@ -222,7 +228,7 @@ describe("tree walker", () => {
           },
         },
       ];
-      expect(sortByPath(data)).to.eql(sortByPath(expectedData));
+      assert.deepStrictEqual(sortByPath(data), sortByPath(expectedData));
     };
 
     it("sync", () => {
@@ -235,21 +241,24 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("a");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        options,
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          options,
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
@@ -259,7 +268,7 @@ describe("tree walker", () => {
     };
 
     const expectations = (data: any) => {
-      expect(data).to.eql([
+      assert.deepStrictEqual(data, [
         {
           path: pathUtil.resolve("abc"),
           item: {
@@ -280,21 +289,24 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("abc");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        {},
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          {},
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
@@ -304,7 +316,7 @@ describe("tree walker", () => {
     };
 
     const expectations = (data: any) => {
-      expect(data).to.eql([
+      assert.deepStrictEqual(data, [
         {
           path: pathUtil.resolve("abc.txt"),
           item: {
@@ -325,27 +337,30 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("abc.txt");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        {},
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          {},
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
   describe("will do fine with nonexistent entry point", () => {
     const expectations = (data: any) => {
-      expect(data).to.eql([
+      assert.deepStrictEqual(data, [
         {
           path: pathUtil.resolve("abc.txt"),
           item: undefined,
@@ -362,20 +377,23 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("abc.txt");
       const data: any[] = [];
-      walker.async(
-        absoluteStartingPath,
-        {},
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          {},
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 
@@ -392,7 +410,7 @@ describe("tree walker", () => {
     };
 
     const expectations = (data: any) => {
-      expect(data).to.eql([
+      assert.deepStrictEqual(data, [
         {
           path: pathUtil.resolve("a"),
           item: {
@@ -432,21 +450,24 @@ describe("tree walker", () => {
       expectations(data);
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const absoluteStartingPath = pathUtil.resolve("a");
       const data: any[] = [];
       preparations();
-      walker.async(
-        absoluteStartingPath,
-        options,
-        (path: string, item: any) => {
-          data.push({ path, item });
-        },
-        (err: any) => {
-          expectations(data);
-          done(err);
-        }
-      );
+      await new Promise<void>((resolve, reject) => {
+        walker.async(
+          absoluteStartingPath,
+          options,
+          (path: string, item: any) => {
+            data.push({ path, item });
+          },
+          (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          },
+        );
+      });
+      expectations(data);
     });
   });
 });

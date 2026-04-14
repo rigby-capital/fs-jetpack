@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("atomic write", () => {
   const filePath = "file.txt";
@@ -13,8 +14,8 @@ describe("atomic write", () => {
 
   describe("fresh write (file doesn't exist yet)", () => {
     const expectations = () => {
-      path(filePath).shouldBeFileWithContent("abc");
-      path(tempPath).shouldNotExist();
+      assertPath(filePath).shouldBeFileWithContent("abc");
+      assertPath(tempPath).shouldNotExist();
     };
 
     it("sync", () => {
@@ -22,11 +23,9 @@ describe("atomic write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync(filePath, "abc", { atomic: true }).then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync(filePath, "abc", { atomic: true });
+      expectations();
     });
   });
 
@@ -36,8 +35,8 @@ describe("atomic write", () => {
     };
 
     const expectations = () => {
-      path(filePath).shouldBeFileWithContent("abc");
-      path(tempPath).shouldNotExist();
+      assertPath(filePath).shouldBeFileWithContent("abc");
+      assertPath(tempPath).shouldNotExist();
     };
 
     it("sync", () => {
@@ -46,12 +45,10 @@ describe("atomic write", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.writeAsync(filePath, "abc", { atomic: true }).then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.writeAsync(filePath, "abc", { atomic: true });
+      expectations();
     });
   });
 
@@ -63,8 +60,8 @@ describe("atomic write", () => {
     };
 
     const expectations = () => {
-      path(filePath).shouldBeFileWithContent("abc");
-      path(tempPath).shouldNotExist();
+      assertPath(filePath).shouldBeFileWithContent("abc");
+      assertPath(tempPath).shouldNotExist();
     };
 
     it("sync", () => {
@@ -73,12 +70,10 @@ describe("atomic write", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.writeAsync(filePath, "abc", { atomic: true }).then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.writeAsync(filePath, "abc", { atomic: true });
+      expectations();
     });
   });
 });

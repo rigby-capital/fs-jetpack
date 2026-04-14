@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("write", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -10,7 +11,7 @@ describe("write", () => {
 
   describe("writes data from string", () => {
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("abc");
+      assertPath("file.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -18,29 +19,25 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync("file.txt", "abc").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync("file.txt", "abc");
+      expectations();
     });
   });
 
   describe("writes data from Buffer", () => {
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent(new Buffer([11, 22]));
+      assertPath("file.txt").shouldBeFileWithContent(Buffer.from([11, 22]));
     };
 
     it("sync", () => {
-      jetpack.write("file.txt", new Buffer([11, 22]));
+      jetpack.write("file.txt", Buffer.from([11, 22]));
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync("file.txt", new Buffer([11, 22])).then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync("file.txt", Buffer.from([11, 22]));
+      expectations();
     });
   });
 
@@ -51,7 +48,7 @@ describe("write", () => {
 
     const expectations = () => {
       const content = JSON.parse(fse.readFileSync("file.json", "utf8"));
-      expect(content).to.eql(obj);
+      assert.deepStrictEqual(content, obj);
     };
 
     it("sync", () => {
@@ -59,11 +56,9 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync("file.json", obj).then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync("file.json", obj);
+      expectations();
     });
   });
 
@@ -76,8 +71,8 @@ describe("write", () => {
       const sizeA = fse.statSync("a.json").size;
       const sizeB = fse.statSync("b.json").size;
       const sizeC = fse.statSync("c.json").size;
-      expect(sizeB).to.be.above(sizeA);
-      expect(sizeC).to.be.above(sizeB);
+      assert.ok(sizeB > sizeA);
+      assert.ok(sizeC > sizeB);
     };
 
     it("sync", () => {
@@ -87,15 +82,13 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      Promise.all([
+    it("async", async () => {
+      await Promise.all([
         jetpack.writeAsync("a.json", obj, { jsonIndent: 0 }),
         jetpack.writeAsync("b.json", obj), // Default indent = 2
         jetpack.writeAsync("c.json", obj, { jsonIndent: 4 }),
-      ]).then(() => {
-        expectations();
-        done();
-      });
+      ]);
+      expectations();
     });
   });
 
@@ -106,7 +99,7 @@ describe("write", () => {
 
     const expectations = () => {
       const content = JSON.parse(fse.readFileSync("file.json", "utf8"));
-      expect(content.date).to.equal(obj.date.toISOString());
+      assert.strictEqual(content.date, obj.date.toISOString());
     };
 
     it("sync", () => {
@@ -114,11 +107,9 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync("file.json", obj).then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync("file.json", obj);
+      expectations();
     });
   });
 
@@ -128,8 +119,8 @@ describe("write", () => {
         fse.writeFileSync("file.txt", "abc", { mode: "700" });
       };
       const expectations = () => {
-        path("file.txt").shouldBeFileWithContent("xyz");
-        path("file.txt").shouldHaveMode("711");
+        assertPath("file.txt").shouldBeFileWithContent("xyz");
+        assertPath("file.txt").shouldHaveMode("711");
       };
 
       it("sync, mode passed as string", () => {
@@ -142,31 +133,21 @@ describe("write", () => {
         expectations();
       });
 
-      it("async, mode passed as string", (done) => {
-        jetpack
-          .writeAsync("file.txt", "xyz", { mode: "711" })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+      it("async, mode passed as string", async () => {
+        await jetpack.writeAsync("file.txt", "xyz", { mode: "711" });
+        expectations();
       });
 
-      it("async, mode passed as number", (done) => {
-        jetpack
-          .writeAsync("file.txt", "xyz", { mode: 0o711 })
-          .then(() => {
-            expectations();
-            done();
-          })
-          .catch(done);
+      it("async, mode passed as number", async () => {
+        await jetpack.writeAsync("file.txt", "xyz", { mode: 0o711 });
+        expectations();
       });
     });
   }
 
   describe("can create nonexistent parent directories", () => {
     const expectations = () => {
-      path("a/b/c.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b/c.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -174,17 +155,15 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.writeAsync("a/b/c.txt", "abc").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.writeAsync("a/b/c.txt", "abc");
+      expectations();
     });
   });
 
   describe("respects internal CWD of jetpack instance", () => {
     const expectations = () => {
-      path("a/b/c.txt").shouldBeFileWithContent("abc");
+      assertPath("a/b/c.txt").shouldBeFileWithContent("abc");
     };
 
     it("sync", () => {
@@ -193,12 +172,10 @@ describe("write", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
-      jetContext.writeAsync("b/c.txt", "abc").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.writeAsync("b/c.txt", "abc");
+      expectations();
     });
   });
 
@@ -214,24 +191,42 @@ describe("write", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined), {
+              message: `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
 
     describe('"data" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method("abc", true);
-          }).to.throw(
-            `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer or an object or an array. Received boolean`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method("abc", true), {
+              message: `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer or an object or an array. Received boolean`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method("abc", true);
+              },
+              {
+                message: `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer or an object or an array. Received boolean`,
+              },
+            );
+          }
         });
       });
     });
@@ -239,23 +234,47 @@ describe("write", () => {
     describe('"options" object', () => {
       describe('"atomic" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", "xyz", { atomic: 1 });
-            }).to.throw(
-              `Argument "options.atomic" passed to ${test.methodName}(path, data, [options]) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", "xyz", { atomic: 1 }),
+                {
+                  message: `Argument "options.atomic" passed to ${test.methodName}(path, data, [options]) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", "xyz", { atomic: 1 });
+                },
+                {
+                  message: `Argument "options.atomic" passed to ${test.methodName}(path, data, [options]) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"jsonIndent" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", "xyz", { jsonIndent: true });
-            }).to.throw(
-              `Argument "options.jsonIndent" passed to ${test.methodName}(path, data, [options]) must be a number. Received boolean`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", "xyz", { jsonIndent: true }),
+                {
+                  message: `Argument "options.jsonIndent" passed to ${test.methodName}(path, data, [options]) must be a number. Received boolean`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", "xyz", { jsonIndent: true });
+                },
+                {
+                  message: `Argument "options.jsonIndent" passed to ${test.methodName}(path, data, [options]) must be a number. Received boolean`,
+                },
+              );
+            }
           });
         });
       });

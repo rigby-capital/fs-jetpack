@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 import { InspectTreeResult } from "../types";
 
 describe("inspectTree", () => {
@@ -16,7 +17,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "dir",
         type: "dir",
         size: 7,
@@ -47,15 +48,10 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .inspectTreeAsync("dir")
-        .then((tree) => {
-          expectations(tree);
-          done();
-        })
-        .catch(done);
+      const tree = await jetpack.inspectTreeAsync("dir");
+      expectations(tree);
     });
   });
 
@@ -68,7 +64,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "dir",
         type: "dir",
         size: 6,
@@ -111,15 +107,10 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .inspectTreeAsync("dir")
-        .then((tree) => {
-          expectations(tree);
-          done();
-        })
-        .catch(done);
+      const tree = await jetpack.inspectTreeAsync("dir");
+      expectations(tree);
     });
   });
 
@@ -129,27 +120,11 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      // data will look like...
-      // {
-      //   name: 'dir',
-      //   relativePath: '.',
-      //   children: [
-      //     {
-      //       name: 'subdir',
-      //       relativePath: './subdir',
-      //       children: [
-      //         {
-      //           name: 'file.txt',
-      //           relativePath: './subdir/file.txt'
-      //         }
-      //       ]
-      //     }
-      //   ]
-      // }
-      expect(data.relativePath).to.equal(".");
-      expect(data.children[0].relativePath).to.equal("./subdir");
-      expect(data.children[0].children[0].relativePath).to.equal(
-        "./subdir/file.txt"
+      assert.strictEqual(data.relativePath, ".");
+      assert.strictEqual(data.children[0].relativePath, "./subdir");
+      assert.strictEqual(
+        data.children[0].children[0].relativePath,
+        "./subdir/file.txt",
       );
     };
 
@@ -158,12 +133,12 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir", { relativePath: true }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.inspectTreeAsync("dir", { relativePath: true }).then((tree) => {
-        expectations(tree);
-        done();
+      const tree = await jetpack.inspectTreeAsync("dir", {
+        relativePath: true,
       });
+      expectations(tree);
     });
   });
 
@@ -173,7 +148,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "file.txt",
         type: "file",
         size: 3,
@@ -185,12 +160,10 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir/file.txt"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.inspectTreeAsync("dir/file.txt").then((tree) => {
-        expectations(tree);
-        done();
-      });
+      const tree = await jetpack.inspectTreeAsync("dir/file.txt");
+      expectations(tree);
     });
   });
 
@@ -200,7 +173,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "empty",
         type: "dir",
         size: 0,
@@ -213,29 +186,25 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("empty"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.inspectTreeAsync("empty").then((tree) => {
-        expectations(tree);
-        done();
-      });
+      const tree = await jetpack.inspectTreeAsync("empty");
+      expectations(tree);
     });
   });
 
   describe("returns undefined if path doesn't exist", () => {
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.equal(undefined);
+      assert.strictEqual(data, undefined);
     };
 
     it("sync", () => {
       expectations(jetpack.inspectTree("nonexistent"));
     });
 
-    it("async", (done) => {
-      jetpack.inspectTreeAsync("nonexistent").then((dataAsync) => {
-        expectations(dataAsync);
-        done();
-      });
+    it("async", async () => {
+      const dataAsync = await jetpack.inspectTreeAsync("nonexistent");
+      expectations(dataAsync);
     });
   });
 
@@ -245,15 +214,24 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(typeof data.accessTime.getTime).to.equal("function");
-      expect(typeof data.modifyTime.getTime).to.equal("function");
-      expect(typeof data.changeTime.getTime).to.equal("function");
-      expect(typeof data.birthTime.getTime).to.equal("function");
+      assert.strictEqual(typeof data.accessTime.getTime, "function");
+      assert.strictEqual(typeof data.modifyTime.getTime, "function");
+      assert.strictEqual(typeof data.changeTime.getTime, "function");
+      assert.strictEqual(typeof data.birthTime.getTime, "function");
 
-      expect(typeof data.children[0].accessTime.getTime).to.equal("function");
-      expect(typeof data.children[0].modifyTime.getTime).to.equal("function");
-      expect(typeof data.children[0].changeTime.getTime).to.equal("function");
-      expect(typeof data.children[0].birthTime.getTime).to.equal("function");
+      assert.strictEqual(
+        typeof data.children[0].accessTime.getTime,
+        "function",
+      );
+      assert.strictEqual(
+        typeof data.children[0].modifyTime.getTime,
+        "function",
+      );
+      assert.strictEqual(
+        typeof data.children[0].changeTime.getTime,
+        "function",
+      );
+      assert.strictEqual(typeof data.children[0].birthTime.getTime, "function");
     };
 
     it("sync", () => {
@@ -261,12 +239,10 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir", { times: true }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.inspectTreeAsync("dir", { times: true }).then((data) => {
-        expectations(data);
-        done();
-      });
+      const data = await jetpack.inspectTreeAsync("dir", { times: true });
+      expectations(data);
     });
   });
 
@@ -276,7 +252,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data.name).to.equal("b.txt");
+      assert.strictEqual(data.name, "b.txt");
     };
 
     it("sync", () => {
@@ -285,13 +261,11 @@ describe("inspectTree", () => {
       expectations(jetContext.inspectTree("b.txt"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.inspectTreeAsync("b.txt").then((data) => {
-        expectations(data);
-        done();
-      });
+      const data = await jetContext.inspectTreeAsync("b.txt");
+      expectations(data);
     });
   });
 
@@ -302,7 +276,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "dir",
         type: "dir",
         size: 3,
@@ -327,19 +301,12 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir", { symlinks: "report" })); // explicit
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .inspectTreeAsync("dir") // implicit
-        .then((tree) => {
-          expectations(tree);
-          return jetpack.inspectTreeAsync("dir", { symlinks: "report" }); // explicit
-        })
-        .then((tree) => {
-          expectations(tree);
-          done();
-        })
-        .catch(done);
+      let tree = await jetpack.inspectTreeAsync("dir"); // implicit
+      expectations(tree);
+      tree = await jetpack.inspectTreeAsync("dir", { symlinks: "report" }); // explicit
+      expectations(tree);
     });
   });
 
@@ -350,7 +317,7 @@ describe("inspectTree", () => {
     };
 
     const expectations = (data: InspectTreeResult) => {
-      expect(data).to.eql({
+      assert.deepStrictEqual(data, {
         name: "dir",
         type: "dir",
         size: 6,
@@ -374,15 +341,12 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir", { symlinks: "follow" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .inspectTreeAsync("dir", { symlinks: "follow" })
-        .then((tree) => {
-          expectations(tree);
-          done();
-        })
-        .catch(done);
+      const tree = await jetpack.inspectTreeAsync("dir", {
+        symlinks: "follow",
+      });
+      expectations(tree);
     });
   });
 
@@ -396,11 +360,17 @@ describe("inspectTree", () => {
       // md5 of
       // 'a.txt' + '900150983cd24fb0d6963f7d28e17f72' +
       // 'b.txt' + '025e4da7edac35ede583f5e8d51aa7ec'
-      expect(data.md5).to.equal("b0ff9df854172efe752cb36b96c8bccd");
+      assert.strictEqual(data.md5, "b0ff9df854172efe752cb36b96c8bccd");
       // md5 of 'abc'
-      expect(data.children[0].md5).to.equal("900150983cd24fb0d6963f7d28e17f72");
+      assert.strictEqual(
+        data.children[0].md5,
+        "900150983cd24fb0d6963f7d28e17f72",
+      );
       // md5 of 'defg'
-      expect(data.children[1].md5).to.equal("025e4da7edac35ede583f5e8d51aa7ec");
+      assert.strictEqual(
+        data.children[1].md5,
+        "025e4da7edac35ede583f5e8d51aa7ec",
+      );
     };
 
     it("sync", () => {
@@ -408,12 +378,10 @@ describe("inspectTree", () => {
       expectations(jetpack.inspectTree("dir", { checksum: "md5" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.inspectTreeAsync("dir", { checksum: "md5" }).then((tree) => {
-        expectations(tree);
-        done();
-      });
+      const tree = await jetpack.inspectTreeAsync("dir", { checksum: "md5" });
+      expectations(tree);
     });
   });
 
@@ -424,23 +392,20 @@ describe("inspectTree", () => {
 
     const expectations = (data: InspectTreeResult) => {
       // md5 of empty string
-      expect(data.md5).to.equal("d41d8cd98f00b204e9800998ecf8427e");
+      assert.strictEqual(data.md5, "d41d8cd98f00b204e9800998ecf8427e");
     };
 
-    // SYNC
     it("sync", () => {
       preparations();
       expectations(jetpack.inspectTree("empty_dir", { checksum: "md5" }));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack
-        .inspectTreeAsync("empty_dir", { checksum: "md5" })
-        .then((tree) => {
-          expectations(tree);
-          done();
-        });
+      const tree = await jetpack.inspectTreeAsync("empty_dir", {
+        checksum: "md5",
+      });
+      expectations(tree);
     });
   });
 
@@ -460,12 +425,21 @@ describe("inspectTree", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined), {
+              message: `Argument "path" passed to ${test.methodName}(path, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -473,48 +447,102 @@ describe("inspectTree", () => {
     describe('"options" object', () => {
       describe('"checksum" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { checksum: 1 });
-            }).to.throw(
-              `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must be a string. Received number`
-            );
+          it(test.type + " (type check)", async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { checksum: 1 }), {
+                message: `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must be a string. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { checksum: 1 });
+                },
+                {
+                  message: `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must be a string. Received number`,
+                },
+              );
+            }
           });
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { checksum: "foo" });
-            }).to.throw(
-              `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must have one of values: md5, sha1, sha256`
-            );
+          it(test.type + " (value check)", async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { checksum: "foo" }),
+                {
+                  message: `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must have one of values: md5, sha1, sha256, sha512`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { checksum: "foo" });
+                },
+                {
+                  message: `Argument "options.checksum" passed to ${test.methodName}(path, [options]) must have one of values: md5, sha1, sha256, sha512`,
+                },
+              );
+            }
           });
         });
       });
       describe('"relativePath" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { relativePath: 1 });
-            }).to.throw(
-              `Argument "options.relativePath" passed to ${test.methodName}(path, [options]) must be a boolean. Received number`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { relativePath: 1 }),
+                {
+                  message: `Argument "options.relativePath" passed to ${test.methodName}(path, [options]) must be a boolean. Received number`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { relativePath: 1 });
+                },
+                {
+                  message: `Argument "options.relativePath" passed to ${test.methodName}(path, [options]) must be a boolean. Received number`,
+                },
+              );
+            }
           });
         });
       });
       describe('"symlinks" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { symlinks: 1 });
-            }).to.throw(
-              `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must be a string. Received number`
-            );
+          it(test.type + " (type check)", async () => {
+            if (test.type === "async") {
+              await assert.rejects(() => test.method("abc", { symlinks: 1 }), {
+                message: `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must be a string. Received number`,
+              });
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { symlinks: 1 });
+                },
+                {
+                  message: `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must be a string. Received number`,
+                },
+              );
+            }
           });
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", { symlinks: "foo" });
-            }).to.throw(
-              `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must have one of values: report, follow`
-            );
+          it(test.type + " (value check)", async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", { symlinks: "foo" }),
+                {
+                  message: `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must have one of values: report, follow`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", { symlinks: "foo" });
+                },
+                {
+                  message: `Argument "options.symlinks" passed to ${test.methodName}(path, [options]) must have one of values: report, follow`,
+                },
+              );
+            }
           });
         });
       });

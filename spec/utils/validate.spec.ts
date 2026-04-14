@@ -1,12 +1,16 @@
-import { expect } from "chai";
-const validate: any = require("../../lib/utils/validate");
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import * as validate from "../../src/utils/validate.js";
 
 describe("util validate", () => {
   describe("validates arguments passed to methods", () => {
     it("validates its own input", () => {
-      expect(() => {
-        validate.argument("foo(thing)", "thing", 123, ["foo"]);
-      }).to.throw('Unknown type "foo"');
+      assert.throws(
+        () => {
+          validate.argument("foo(thing)", "thing", 123, ["foo"]);
+        },
+        { message: 'Unknown type "foo"' },
+      );
     });
 
     [
@@ -43,12 +47,12 @@ describe("util validate", () => {
         article: "an",
         goodValue: {},
         wrongValue: [],
-        wrongValueType: "array",
+        wrongValueType: "array of ",
       },
       {
         type: "buffer",
         article: "a",
-        goodValue: new Buffer(1),
+        goodValue: Buffer.alloc(1),
         wrongValue: 123,
         wrongValueType: "number",
       },
@@ -75,120 +79,156 @@ describe("util validate", () => {
       },
     ].forEach((test) => {
       it(`validates that given thing is a(n) ${test.type}`, () => {
-        expect(() => {
+        assert.doesNotThrow(() => {
           validate.argument("foo(thing)", "thing", test.goodValue, [test.type]);
-        }).not.to.throw();
+        });
 
-        expect(() => {
-          validate.argument("foo(thing)", "thing", test.wrongValue, [
-            test.type,
-          ]);
-        }).to.throw(
-          `Argument "thing" passed to foo(thing) must be ${test.article} ${test.type}. Received ${test.wrongValueType}`
+        assert.throws(
+          () => {
+            validate.argument("foo(thing)", "thing", test.wrongValue, [
+              test.type,
+            ]);
+          },
+          {
+            message: `Argument "thing" passed to foo(thing) must be ${test.article} ${test.type}. Received ${test.wrongValueType}`,
+          },
         );
       });
     });
 
     [
-      { type: "string", value: "abc", expect: "number" },
-      { type: "number", value: 123, expect: "string" },
-      { type: "boolean", value: true, expect: "number" },
-      { type: "array", value: [], expect: "number" },
-      { type: "object", value: {}, expect: "number" },
-      { type: "buffer", value: new Buffer(1), expect: "number" },
-      { type: "null", value: null, expect: "number" },
-      { type: "undefined", value: undefined, expect: "number" },
-      { type: "function", value: function () {}, expect: "number" },
+      { type: "string", value: "abc", expect: "number", received: "string" },
+      { type: "number", value: 123, expect: "string", received: "number" },
+      { type: "boolean", value: true, expect: "number", received: "boolean" },
+      { type: "array", value: [], expect: "number", received: "array of " },
+      { type: "object", value: {}, expect: "number", received: "object" },
+      {
+        type: "buffer",
+        value: Buffer.alloc(1),
+        expect: "number",
+        received: "buffer",
+      },
+      { type: "null", value: null, expect: "number", received: "null" },
+      {
+        type: "undefined",
+        value: undefined,
+        expect: "number",
+        received: "undefined",
+      },
+      {
+        type: "function",
+        value: function () {},
+        expect: "number",
+        received: "function",
+      },
     ].forEach((test) => {
       it(`can detect wrong type: ${test.type}`, () => {
-        expect(() => {
-          validate.argument("foo(thing)", "thing", test.value, [test.expect]);
-        }).to.throw(
-          `Argument "thing" passed to foo(thing) must be a ${test.expect}. Received ${test.type}`
+        assert.throws(
+          () => {
+            validate.argument("foo(thing)", "thing", test.value, [test.expect]);
+          },
+          {
+            message: `Argument "thing" passed to foo(thing) must be a ${test.expect}. Received ${test.received}`,
+          },
         );
       });
     });
 
     it("supports more than one allowed type", () => {
-      expect(() => {
-        validate.argument("foo(thing)", "thing", {}, [
-          "string",
-          "number",
-          "boolean",
-        ]);
-      }).to.throw(
-        'Argument "thing" passed to foo(thing) must be a string or a number or a boolean. Received object'
+      assert.throws(
+        () => {
+          validate.argument("foo(thing)", "thing", {}, [
+            "string",
+            "number",
+            "boolean",
+          ]);
+        },
+        {
+          message:
+            'Argument "thing" passed to foo(thing) must be a string or a number or a boolean. Received object',
+        },
       );
     });
 
     it("validates array internal data", () => {
-      expect(() => {
+      assert.doesNotThrow(() => {
         validate.argument(
           "foo(thing)",
           "thing",
           [1, 2, 3],
-          ["array of number"]
+          ["array of number"],
         );
-      }).not.to.throw();
+      });
 
-      expect(() => {
-        validate.argument(
-          "foo(thing)",
-          "thing",
-          [1, 2, "a"],
-          ["array of number"]
-        );
-      }).to.throw(
-        'Argument "thing" passed to foo(thing) must be an array of number. Received array of number, string'
+      assert.throws(
+        () => {
+          validate.argument(
+            "foo(thing)",
+            "thing",
+            [1, 2, "a"],
+            ["array of number"],
+          );
+        },
+        {
+          message:
+            'Argument "thing" passed to foo(thing) must be an array of number. Received array of number, string',
+        },
       );
     });
   });
 
   describe("validates options object", () => {
     it("options object might be undefined", () => {
-      expect(() => {
+      assert.doesNotThrow(() => {
         validate.options("foo(options)", "options", undefined, {
           foo: ["string"],
         });
-      }).not.to.throw();
+      });
     });
 
     it("option key in options object is optional (doh!)", () => {
-      expect(() => {
+      assert.doesNotThrow(() => {
         validate.options("foo(options)", "options", {}, { foo: ["string"] });
-      }).not.to.throw();
+      });
     });
 
     it("throws if option key definition not found", () => {
-      expect(() => {
-        validate.options(
-          "foo(options)",
-          "options",
-          { bar: 123 },
-          { foo: ["string"] }
-        );
-      }).to.throw('Unknown argument "options.bar" passed to foo(options)');
+      assert.throws(
+        () => {
+          validate.options(
+            "foo(options)",
+            "options",
+            { bar: 123 },
+            { foo: ["string"] },
+          );
+        },
+        { message: 'Unknown argument "options.bar" passed to foo(options)' },
+      );
     });
 
     it("validates option", () => {
-      expect(() => {
+      assert.doesNotThrow(() => {
         validate.options(
           "foo(options)",
           "options",
           { foo: "abc" },
-          { foo: ["string"] }
+          { foo: ["string"] },
         );
-      }).not.to.throw();
+      });
 
-      expect(() => {
-        validate.options(
-          "foo(options)",
-          "options",
-          { foo: 123 },
-          { foo: ["string"] }
-        );
-      }).to.throw(
-        'Argument "options.foo" passed to foo(options) must be a string. Received number'
+      assert.throws(
+        () => {
+          validate.options(
+            "foo(options)",
+            "options",
+            { foo: 123 },
+            { foo: ["string"] },
+          );
+        },
+        {
+          message:
+            'Argument "options.foo" passed to foo(options) must be a string. Received number',
+        },
       );
     });
   });

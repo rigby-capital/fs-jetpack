@@ -1,6 +1,6 @@
-import * as os from "os";
-import * as crypto from "crypto";
-import * as fse from "fs-extra";
+import os from "node:os";
+import crypto from "node:crypto";
+import fse from "fs-extra";
 
 const originalCwd = process.cwd();
 const createdDirectories: string[] = [];
@@ -26,7 +26,7 @@ const switchBackToCorrectCwd = () => {
   process.chdir(originalCwd);
   try {
     fse.removeSync(path);
-  } catch (err) {
+  } catch (err: any) {
     // On Windows platform sometimes removal of the directory leads to error:
     // Error: ENOTEMPTY: directory not empty, rmdir
     // Let's retry the attempt.

@@ -1,16 +1,17 @@
-import * as pathUtil from "path";
-import { expect } from "chai";
-import * as jetpack from "..";
+import * as pathUtil from "node:path";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import jetpack from "../src/index.js";
 
 describe("path", () => {
   it("if no parameters passed returns same path as cwd()", () => {
-    expect(jetpack.path()).to.equal(jetpack.cwd());
-    expect(jetpack.path("")).to.equal(jetpack.cwd());
-    expect(jetpack.path(".")).to.equal(jetpack.cwd());
+    assert.strictEqual(jetpack.path(), jetpack.cwd());
+    assert.strictEqual(jetpack.path(""), jetpack.cwd());
+    assert.strictEqual(jetpack.path("."), jetpack.cwd());
   });
 
   it("is absolute if prepending slash present", () => {
-    expect(jetpack.path("/blah")).to.equal(pathUtil.resolve("/blah"));
+    assert.strictEqual(jetpack.path("/blah"), pathUtil.resolve("/blah"));
   });
 
   it("resolves to CWD path of this jetpack instance", () => {
@@ -18,12 +19,12 @@ describe("path", () => {
     // Create jetpack instance with other CWD
     const jetpackSubdir = jetpack.cwd("subdir");
     const b = pathUtil.join(jetpack.cwd(), "subdir", "b");
-    expect(jetpack.path("a")).to.equal(a);
-    expect(jetpackSubdir.path("b")).to.equal(b);
+    assert.strictEqual(jetpack.path("a"), a);
+    assert.strictEqual(jetpackSubdir.path("b"), b);
   });
 
   it("can take unlimited number of arguments as path parts", () => {
     const abc = pathUtil.join(jetpack.cwd(), "a", "b", "c");
-    expect(jetpack.path("a", "b", "c")).to.equal(abc);
+    assert.strictEqual(jetpack.path("a", "b", "c"), abc);
   });
 });

@@ -1,8 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import path from "./assert_path";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 
 describe("append", () => {
   beforeEach(helper.setCleanTestCwd);
@@ -14,7 +15,7 @@ describe("append", () => {
     };
 
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("abcxyz");
+      assertPath("file.txt").shouldBeFileWithContent("abcxyz");
     };
 
     it("sync", () => {
@@ -23,42 +24,38 @@ describe("append", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.appendAsync("file.txt", "xyz").then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.appendAsync("file.txt", "xyz");
+      expectations();
     });
   });
 
   describe("appends Buffer to file", () => {
     const preparations = () => {
-      fse.writeFileSync("file.bin", new Buffer([11]));
+      fse.writeFileSync("file.bin", Buffer.from([11]));
     };
 
     const expectations = () => {
-      path("file.bin").shouldBeFileWithContent(new Buffer([11, 22]));
+      assertPath("file.bin").shouldBeFileWithContent(Buffer.from([11, 22]));
     };
 
     it("sync", () => {
       preparations();
-      jetpack.append("file.bin", new Buffer([22]));
+      jetpack.append("file.bin", Buffer.from([22]));
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.appendAsync("file.bin", new Buffer([22])).then(() => {
-        expectations();
-        done();
-      });
+      await jetpack.appendAsync("file.bin", Buffer.from([22]));
+      expectations();
     });
   });
 
   describe("if file doesn't exist creates it", () => {
     const expectations = () => {
-      path("file.txt").shouldBeFileWithContent("xyz");
+      assertPath("file.txt").shouldBeFileWithContent("xyz");
     };
 
     it("sync", () => {
@@ -66,17 +63,15 @@ describe("append", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.appendAsync("file.txt", "xyz").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.appendAsync("file.txt", "xyz");
+      expectations();
     });
   });
 
   describe("if parent directory doesn't exist creates it", () => {
     const expectations = () => {
-      path("dir/dir/file.txt").shouldBeFileWithContent("xyz");
+      assertPath("dir/dir/file.txt").shouldBeFileWithContent("xyz");
     };
 
     it("sync", () => {
@@ -84,11 +79,9 @@ describe("append", () => {
       expectations();
     });
 
-    it("async", (done) => {
-      jetpack.appendAsync("dir/dir/file.txt", "xyz").then(() => {
-        expectations();
-        done();
-      });
+    it("async", async () => {
+      await jetpack.appendAsync("dir/dir/file.txt", "xyz");
+      expectations();
     });
   });
 
@@ -98,7 +91,7 @@ describe("append", () => {
     };
 
     const expectations = () => {
-      path("a/b.txt").shouldBeFileWithContent("abcxyz");
+      assertPath("a/b.txt").shouldBeFileWithContent("abcxyz");
     };
 
     it("sync", () => {
@@ -108,13 +101,11 @@ describe("append", () => {
       expectations();
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.appendAsync("b.txt", "xyz").then(() => {
-        expectations();
-        done();
-      });
+      await jetContext.appendAsync("b.txt", "xyz");
+      expectations();
     });
   });
 
@@ -130,24 +121,42 @@ describe("append", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined, "xyz");
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined, "xyz"), {
+              message: `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined, "xyz");
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path, data, [options]) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
 
     describe('"data" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method("abc");
-          }).to.throw(
-            `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method("abc"), {
+              message: `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method("abc");
+              },
+              {
+                message: `Argument "data" passed to ${test.methodName}(path, data, [options]) must be a string or a buffer. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
@@ -155,12 +164,24 @@ describe("append", () => {
     describe('"options" object', () => {
       describe('"mode" argument', () => {
         tests.forEach((test) => {
-          it(test.type, () => {
-            expect(() => {
-              test.method("abc", "xyz", { mode: true });
-            }).to.throw(
-              `Argument "options.mode" passed to ${test.methodName}(path, data, [options]) must be a string or a number. Received boolean`
-            );
+          it(test.type, async () => {
+            if (test.type === "async") {
+              await assert.rejects(
+                () => test.method("abc", "xyz", { mode: true }),
+                {
+                  message: `Argument "options.mode" passed to ${test.methodName}(path, data, [options]) must be a string or a number. Received boolean`,
+                },
+              );
+            } else {
+              assert.throws(
+                () => {
+                  test.method("abc", "xyz", { mode: true });
+                },
+                {
+                  message: `Argument "options.mode" passed to ${test.methodName}(path, data, [options]) must be a string or a number. Received boolean`,
+                },
+              );
+            }
           });
         });
       });
@@ -170,7 +191,7 @@ describe("append", () => {
   if (process.platform !== "win32") {
     describe("sets file mode on created file (unix only)", () => {
       const expectations = () => {
-        path("file.txt").shouldHaveMode("711");
+        assertPath("file.txt").shouldHaveMode("711");
       };
 
       it("sync", () => {
@@ -178,11 +199,9 @@ describe("append", () => {
         expectations();
       });
 
-      it("async", (done) => {
-        jetpack.appendAsync("file.txt", "abc", { mode: "711" }).then(() => {
-          expectations();
-          done();
-        });
+      it("async", async () => {
+        await jetpack.appendAsync("file.txt", "abc", { mode: "711" });
+        expectations();
       });
     });
   }

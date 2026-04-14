@@ -1,7 +1,9 @@
-import * as fse from "fs-extra";
-import { expect } from "chai";
-import helper from "./helper";
-import * as jetpack from "..";
+import fse from "fs-extra";
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import assertPath from "./assert_path.js";
+import helper from "./helper.js";
+import jetpack from "../src/index.js";
 import { ExistsResult } from "../types";
 
 describe("exists", () => {
@@ -10,18 +12,16 @@ describe("exists", () => {
 
   describe("returns false if file doesn't exist", () => {
     const expectations = (exists: ExistsResult) => {
-      expect(exists).to.equal(false);
+      assert.strictEqual(exists, false);
     };
 
     it("sync", () => {
       expectations(jetpack.exists("file.txt"));
     });
 
-    it("async", (done) => {
-      jetpack.existsAsync("file.txt").then((exists) => {
-        expectations(exists);
-        done();
-      });
+    it("async", async () => {
+      const exists = await jetpack.existsAsync("file.txt");
+      expectations(exists);
     });
   });
 
@@ -31,7 +31,7 @@ describe("exists", () => {
     };
 
     const expectations = (exists: ExistsResult) => {
-      expect(exists).to.equal("dir");
+      assert.strictEqual(exists, "dir");
     };
 
     it("sync", () => {
@@ -39,12 +39,10 @@ describe("exists", () => {
       expectations(jetpack.exists("a"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.existsAsync("a").then((exists) => {
-        expectations(exists);
-        done();
-      });
+      const exists = await jetpack.existsAsync("a");
+      expectations(exists);
     });
   });
 
@@ -54,7 +52,7 @@ describe("exists", () => {
     };
 
     const expectations = (exists: ExistsResult) => {
-      expect(exists).to.equal("file");
+      assert.strictEqual(exists, "file");
     };
 
     it("sync", () => {
@@ -62,12 +60,10 @@ describe("exists", () => {
       expectations(jetpack.exists("text.txt"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       preparations();
-      jetpack.existsAsync("text.txt").then((exists) => {
-        expectations(exists);
-        done();
-      });
+      const exists = await jetpack.existsAsync("text.txt");
+      expectations(exists);
     });
   });
 
@@ -77,7 +73,7 @@ describe("exists", () => {
     };
 
     const expectations = (exists: ExistsResult) => {
-      expect(exists).to.equal("file");
+      assert.strictEqual(exists, "file");
     };
 
     it("sync", () => {
@@ -86,13 +82,11 @@ describe("exists", () => {
       expectations(jetContext.exists("text.txt"));
     });
 
-    it("async", (done) => {
+    it("async", async () => {
       const jetContext = jetpack.cwd("a");
       preparations();
-      jetContext.existsAsync("text.txt").then((exists) => {
-        expectations(exists);
-        done();
-      });
+      const exists = await jetContext.existsAsync("text.txt");
+      expectations(exists);
     });
   });
 
@@ -104,12 +98,21 @@ describe("exists", () => {
 
     describe('"path" argument', () => {
       tests.forEach((test) => {
-        it(test.type, () => {
-          expect(() => {
-            test.method(undefined);
-          }).to.throw(
-            `Argument "path" passed to ${test.methodName}(path) must be a string. Received undefined`
-          );
+        it(test.type, async () => {
+          if (test.type === "async") {
+            await assert.rejects(() => test.method(undefined), {
+              message: `Argument "path" passed to ${test.methodName}(path) must be a string. Received undefined`,
+            });
+          } else {
+            assert.throws(
+              () => {
+                test.method(undefined);
+              },
+              {
+                message: `Argument "path" passed to ${test.methodName}(path) must be a string. Received undefined`,
+              },
+            );
+          }
         });
       });
     });
