@@ -29,16 +29,16 @@
     "lint:fix": "xo --fix",
     "prepublishOnly": "npm run build"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./distribution/index.js",
+  "types": "./distribution/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./distribution/index.d.ts",
+      "import": "./distribution/index.js"
     }
   },
   "files": [
-    "dist"
+    "distribution"
   ],
   "homepage": "https://github.com/rigby-capital/fs-jetpack",
   "repository": {

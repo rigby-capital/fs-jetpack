@@ -3,7 +3,7 @@ import * as pathUtil from "node:path";
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import helper from "../helper.js";
-import * as walker from "../../src/utils/tree_walker.js";
+import * as walker from "../../source/utils/tree_walker.js";
 
 const sortByPath = (arr: any[]) => {
   arr.sort((a: any, b: any) => {

@@ -16,7 +16,7 @@ npm install
 ## Development workflow
 
 ```sh
-npm run build       # Compile TypeScript to dist/
+npm run build       # Compile TypeScript to distribution/
 npm test            # Run all tests (node:test)
 npm run coverage    # Run tests with coverage
 npm run lint        # Lint with XO
@@ -26,9 +26,9 @@ npm run lint:fix    # Auto-fix lint issues
 ## Project structure
 
 ```
-src/            TypeScript source (ESM)
+source/         TypeScript source (ESM)
 spec/           Tests (node:test + node:assert/strict)
-dist/           Compiled output (git-ignored)
+distribution/   Compiled output (git-ignored)
 benchmark/      Performance benchmarks
 ```
 

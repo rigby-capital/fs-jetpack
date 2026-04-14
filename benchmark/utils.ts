@@ -1,8 +1,8 @@
 import os from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import jetpack from "../src/index.js";
-import type { FSJetpack } from "../src/jetpack.js";
+import jetpack from "../source/index.js";
+import type { FSJetpack } from "../source/jetpack.js";
 
 const execAsync = promisify(execFile);
 

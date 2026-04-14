@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import * as matcher from "../../src/utils/matcher.js";
+import * as matcher from "../../source/utils/matcher.js";
 
 describe("matcher", () => {
   it("can test against one pattern passed as a string", () => {

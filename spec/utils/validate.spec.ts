@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import * as validate from "../../src/utils/validate.js";
+import * as validate from "../../source/utils/validate.js";
 
 describe("util validate", () => {
   describe("validates arguments passed to methods", () => {

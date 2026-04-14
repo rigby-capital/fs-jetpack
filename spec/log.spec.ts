@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import jetpack from "../src/index.js";
+import jetpack from "../source/index.js";
 
 // Test for https://github.com/szwacz/fs-jetpack/issues/29
 describe("console.log", () => {

@@ -1,7 +1,7 @@
 /** @type {import('xo').FlatXoConfig} */
 const xoConfig = [
   {
-    ignores: ["benchmark/**", "dist/**"],
+    ignores: ["benchmark/**", "distribution/**"],
   },
   {
     space: 2,

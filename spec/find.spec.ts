@@ -3,8 +3,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import assertPath from "./assert_path.js";
 import helper from "./helper.js";
-import jetpack from "../src/index.js";
-import { InspectResult } from "../types";
+import jetpack, { type InspectResult } from "../source/index.js";
 
 describe("find", () => {
   beforeEach(helper.setCleanTestCwd);

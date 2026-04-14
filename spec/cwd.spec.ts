@@ -1,7 +1,7 @@
 import * as pathUtil from "node:path";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import jetpack from "../src/index.js";
+import jetpack from "../source/index.js";
 
 describe("cwd", () => {
   it("returns the same path as process.cwd for main instance of jetpack", () => {
