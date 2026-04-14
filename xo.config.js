@@ -79,6 +79,13 @@ const xoConfig = [
       "@stylistic/indent-binary-ops": "off",
     },
   },
+  {
+    // Allow deprecated cwd() usage in tests and in the index re-export
+    files: ["spec/**", "source/index.ts"],
+    rules: {
+      "@typescript-eslint/no-deprecated": "off",
+    },
+  },
 ];
 
 export default xoConfig;

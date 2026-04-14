@@ -18,6 +18,8 @@ import * as streams from './streams.js';
 import * as tmpDir from './tmp_dir.js';
 import * as write from './write.js';
 import * as symlink from './symlink.js';
+import createJetpackFile from './jetpack_file.js';
+import createJetpackDir from './jetpack_dir.js';
 import type {InspectResult} from './inspect.js';
 import type {FindOptions} from './find.js';
 import type {WriteOptions} from './write.js';
@@ -696,8 +698,11 @@ export type FSJetpack = {
  * @param cwdPath - The initial working directory for the new instance.
  * @returns A fully configured {@link FSJetpack} instance.
  */
-const jetpackContext = (cwdPath?: string): FSJetpack => {
+const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHandler>): FSJetpack => {
   const getCwdPath = (): string => cwdPath || process.cwd();
+
+  // Format handlers are shared by reference across child instances
+  const formats = formatHandlers ?? new Map<string, FormatHandler>();
 
   const cwd = (...args: string[]): string | FSJetpack => {
     // Return current CWD if no arguments specified...
@@ -705,9 +710,9 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
       return getCwdPath();
     }
 
-    // ...create new CWD context otherwise
+    // ...create new CWD context otherwise, inheriting format handlers
     const pathParts = [getCwdPath(), ...args];
-    return jetpackContext(path.resolve(...pathParts));
+    return jetpackContext(path.resolve(...pathParts), formats);
   };
 
   // Resolves path to inner CWD path of this jetpack instance
@@ -762,8 +767,7 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     dir(p: string, criteria?: DirCriteria): any {
       if (criteria === undefined) {
         // Lazy JetpackDir reference — no I/O (v7)
-        // Full implementation in source/jetpack_dir.ts (Phase 3)
-        throw new Error('JetpackDir not yet implemented');
+        return createJetpackDir(resolvePath(p));
       }
 
       dir.validateInput('dir', p, criteria);
@@ -790,8 +794,7 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     file(p: string, criteria?: FileCriteria): any {
       if (criteria === undefined) {
         // Lazy JetpackFile reference — no I/O (v7)
-        // Full implementation in source/jetpack_file.ts (Phase 2)
-        throw new Error('JetpackFile not yet implemented');
+        return createJetpackFile(resolvePath(p));
       }
 
       file.validateInput('file', p, criteria);
@@ -961,10 +964,13 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     },
 
     use(_plugin: JetpackPlugin): FSJetpack {
-      // Plugin system implementation — Phase 5
-      // For now, accept the plugin but do nothing.
-      // Full implementation will store format handlers and wire them into read/write.
-      throw new Error('Plugin system not yet implemented');
+      if (_plugin.formats) {
+        for (const [ext, handler] of Object.entries(_plugin.formats)) {
+          formats.set(ext, handler);
+        }
+      }
+
+      return api;
     },
   };
 

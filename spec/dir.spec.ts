@@ -16,12 +16,12 @@ describe("dir", () => {
     };
 
     it("sync", () => {
-      jetpack.dir("x");
+      jetpack.dir("x", {});
       expectations();
     });
 
     it("async", async () => {
-      await jetpack.dirAsync("x");
+      await jetpack.dirAsync("x", {});
       expectations();
     });
   });
@@ -37,13 +37,13 @@ describe("dir", () => {
 
     it("sync", () => {
       preparations();
-      jetpack.dir("x");
+      jetpack.dir("x", {});
       expectations();
     });
 
     it("async", async () => {
       preparations();
-      await jetpack.dirAsync("x");
+      await jetpack.dirAsync("x", {});
       expectations();
     });
   });
@@ -54,12 +54,12 @@ describe("dir", () => {
     };
 
     it("sync", () => {
-      jetpack.dir("a/b/c");
+      jetpack.dir("a/b/c", {});
       expectations();
     });
 
     it("async", async () => {
-      await jetpack.dirAsync("a/b/c");
+      await jetpack.dirAsync("a/b/c", {});
       expectations();
     });
   });
@@ -70,7 +70,7 @@ describe("dir", () => {
     };
 
     it("async", async () => {
-      await Promise.all([jetpack.dirAsync("a/b/c"), jetpack.dirAsync("a/b/c")]);
+      await Promise.all([jetpack.dirAsync("a/b/c", {}), jetpack.dirAsync("a/b/c", {})]);
       expectations();
     });
   });
@@ -88,13 +88,13 @@ describe("dir", () => {
 
     it("sync", () => {
       preparations();
-      jetpack.dir("a");
+      jetpack.dir("a", {});
       expectations();
     });
 
     it("async", async () => {
       preparations();
-      await jetpack.dirAsync("a");
+      await jetpack.dirAsync("a", {});
       expectations();
     });
   });
@@ -134,7 +134,7 @@ describe("dir", () => {
     it("sync", () => {
       preparations();
       try {
-        jetpack.dir("a");
+        jetpack.dir("a", {});
         throw new Error("Expected error to be thrown");
       } catch (err: any) {
         expectations(err);
@@ -144,7 +144,7 @@ describe("dir", () => {
     it("async", async () => {
       preparations();
       await assert.rejects(
-        () => jetpack.dirAsync("a"),
+        () => jetpack.dirAsync("a", {}),
         (err: any) => {
           expectations(err);
           return true;
@@ -160,13 +160,13 @@ describe("dir", () => {
 
     it("sync", () => {
       const jetContext = jetpack.cwd("a");
-      jetContext.dir("b");
+      jetContext.dir("b", {});
       expectations();
     });
 
     it("async", async () => {
       const jetContext = jetpack.cwd("a");
-      await jetContext.dirAsync("b");
+      await jetContext.dirAsync("b", {});
       expectations();
     });
   });
@@ -177,11 +177,11 @@ describe("dir", () => {
     };
 
     it("sync", () => {
-      expectations(jetpack.dir("a"));
+      expectations(jetpack.dir("a", {}));
     });
 
     it("async", async () => {
-      const jetpackContext = await jetpack.dirAsync("a");
+      const jetpackContext = await jetpack.dirAsync("a", {});
       expectations(jetpackContext);
     });
   });
@@ -262,13 +262,13 @@ describe("dir", () => {
 
       it("sync", () => {
         preparations();
-        jetpack.dir("a");
+        jetpack.dir("a", {});
         expectations();
       });
 
       it("async", async () => {
         preparations();
-        await jetpack.dirAsync("a");
+        await jetpack.dirAsync("a", {});
         expectations();
       });
     });
@@ -304,13 +304,13 @@ describe("dir", () => {
       tests.forEach((test) => {
         it(test.type, async () => {
           if (test.type === "async") {
-            await assert.rejects(() => test.method(undefined), {
+            await assert.rejects(() => test.method(undefined, {}), {
               message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
             });
           } else {
             assert.throws(
               () => {
-                test.method(undefined);
+                test.method(undefined, {});
               },
               {
                 message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,

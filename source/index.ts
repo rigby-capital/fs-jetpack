@@ -42,7 +42,6 @@ export default jetpack;
 // Re-export all public API methods bound to the default jetpack instance
 // so users can do: import { read, write, copy } from "@rcsf/fs-jetpack";
 export const {
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   cwd,
   path,
   append,
