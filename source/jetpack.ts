@@ -498,14 +498,17 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     find(startPath?: string | FindOptions, options?: FindOptions): string[] {
       // StartPath is optional parameter, if not specified move rest of params
       // to proper places and default startPath to CWD.
-      if (options === undefined && typeof startPath === 'object') {
+      let resolvedPath: string;
+      if (typeof startPath === 'object' || (startPath === undefined && options === undefined)) {
         options = startPath;
-        startPath = '.';
+        resolvedPath = '.';
+      } else {
+        resolvedPath = startPath!;
       }
 
-      find.validateInput('find', startPath as string, options);
+      find.validateInput('find', resolvedPath, options);
       return find.sync(
-        resolvePath(startPath as string),
+        resolvePath(resolvedPath),
         normalizeOptions(options),
       );
     },
@@ -515,14 +518,17 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     ): Promise<string[]> {
       // StartPath is optional parameter, if not specified move rest of params
       // to proper places and default startPath to CWD.
-      if (options === undefined && typeof startPath === 'object') {
+      let resolvedPath: string;
+      if (typeof startPath === 'object' || (startPath === undefined && options === undefined)) {
         options = startPath;
-        startPath = '.';
+        resolvedPath = '.';
+      } else {
+        resolvedPath = startPath!;
       }
 
-      find.validateInput('findAsync', startPath as string, options);
+      find.validateInput('findAsync', resolvedPath, options);
       return find.async(
-        resolvePath(startPath as string),
+        resolvePath(resolvedPath),
         normalizeOptions(options),
       );
     },
