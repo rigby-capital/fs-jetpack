@@ -47,7 +47,19 @@ import { read, write, copy, find } from "@rcsf/fs-jetpack";
 import { createJetpack } from "@rcsf/fs-jetpack";
 const src = createJetpack("/path/to/source");
 
-// OOP-style file and directory handles (v7)
+// Types are exported directly
+import type {
+  FSJetpack, JetpackFile, JetpackDir,
+  FormatHandler, JetpackPlugin,
+  InspectResult, CopyOptions,
+} from "@rcsf/fs-jetpack";
+```
+
+### OOP-style handles (v7)
+
+```ts
+import jetpack from "@rcsf/fs-jetpack";
+
 const f = jetpack.file("config.json");    // lazy, no I/O
 f.ensure();                               // creates if missing
 const data = f.read("json");              // throws ENOENT if missing
@@ -57,21 +69,20 @@ const d = jetpack.dir("build");           // lazy, no I/O
 d.ensure();                               // mkdir -p
 const files = d.list();                   // throws ENOENT if missing
 d.file("output.json").write(results);
+```
 
-// Sync-only imports (no Async suffix needed)
+### Sync-only imports
+
+```ts
 import { read, write, copy } from "@rcsf/fs-jetpack/sync";
 const content = read("/path/to/file.json", "json");
+```
 
-// Async-only imports (no Async suffix needed)
+### Async-only imports
+
+```ts
 import { read, write, copy } from "@rcsf/fs-jetpack/async";
 const content = await read("/path/to/file.json", "json");
-
-// Types are exported directly
-import type {
-  FSJetpack, JetpackFile, JetpackDir,
-  FormatHandler, JetpackPlugin,
-  InspectResult, CopyOptions,
-} from "@rcsf/fs-jetpack";
 ```
 
 # Table of Contents
