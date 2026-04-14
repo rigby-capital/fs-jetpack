@@ -108,6 +108,276 @@ export type RenameOptions = {
   overwrite?: boolean;
 };
 
+// ---------------------------------------------------------------------------
+// Format handler & plugin types (v7)
+// ---------------------------------------------------------------------------
+
+/**
+ * A format handler that can encode and decode data for a specific file extension.
+ * Registered via the {@link JetpackPlugin} system.
+ */
+export type FormatHandler = {
+  /** Serialize data into a string or Buffer for writing. */
+  encode(data: unknown, options?: unknown): string | Buffer;
+  /** Deserialize raw file content into a structured value. */
+  decode(raw: string | Buffer, options?: unknown): unknown;
+};
+
+/**
+ * A plugin that can be registered via {@link FSJetpack.use}.
+ * Currently supports pluggable format handlers keyed by file extension.
+ */
+export type JetpackPlugin = {
+  /** A descriptive name for this plugin (used for debugging/logging). */
+  name: string;
+  /** Map of file extension (without dot) to format handler. */
+  formats?: Record<string, FormatHandler>;
+};
+
+// ---------------------------------------------------------------------------
+// JetpackFile — lazy file reference (v7)
+// ---------------------------------------------------------------------------
+
+/**
+ * A lazy reference to a file path. No I/O is performed on construction.
+ * Created via `jetpack.file("path")` (without criteria).
+ *
+ * Unlike the flat API (`jetpack.read(path)`), OOP-style read/inspect methods
+ * **throw** `ENOENT` if the file does not exist (strict handle semantic).
+ *
+ * @example
+ * ```ts
+ * const f = jetpack.file("config.json");
+ * f.ensure();                         // creates if missing
+ * const data = f.read("json");        // throws if not found
+ * f.write({ key: "value" });
+ * ```
+ */
+export type JetpackFile = {
+  /** Returns the absolute path of this file reference. */
+  path(): string;
+
+  /** Checks whether the file exists. */
+  exists(): ExistsResult;
+  /** Async version of {@link JetpackFile.exists}. */
+  existsAsync(): Promise<ExistsResult>;
+
+  /**
+   * Reads the file content. **Throws** `ENOENT` if the file does not exist.
+   * @param returnAs - Format to return: `"utf8"` (default), `"buffer"`, `"json"`, or `"jsonWithDates"`.
+   */
+  read(): string;
+  read(returnAs: 'utf8'): string;
+  read(returnAs: 'buffer'): Buffer;
+  read(returnAs: 'json' | 'jsonWithDates'): unknown;
+  /** Async version of {@link JetpackFile.read}. */
+  readAsync(): Promise<string>;
+  readAsync(returnAs: 'utf8'): Promise<string>;
+  readAsync(returnAs: 'buffer'): Promise<Buffer>;
+  readAsync(returnAs: 'json' | 'jsonWithDates'): Promise<unknown>;
+
+  /**
+   * Writes data to this file. Creates parent directories if needed.
+   * @param data - Data to write (string, Buffer, object, or array).
+   * @param options - Mode, atomic writing, JSON indentation.
+   */
+  write(data: WritableData, options?: WriteOptions): void;
+  /** Async version of {@link JetpackFile.write}. */
+  writeAsync(data: WritableData, options?: WriteOptions): Promise<void>;
+
+  /**
+   * Appends data to this file. Creates the file and parent directories if needed.
+   * @param data - String or Buffer to append.
+   * @param options - File mode for creation.
+   */
+  append(data: AppendData, options?: AppendOptions): void;
+  /** Async version of {@link JetpackFile.append}. */
+  appendAsync(data: AppendData, options?: AppendOptions): Promise<void>;
+
+  /**
+   * Copies this file to a new location.
+   * @param to - Destination path.
+   * @param options - Overwrite and matching options.
+   */
+  copy(to: string, options?: CopyOptions): void;
+  /** Async version of {@link JetpackFile.copy}. */
+  copyAsync(to: string, options?: CopyOptions): Promise<void>;
+
+  /**
+   * Moves this file to a new location.
+   * @param to - Destination path.
+   * @param options - Overwrite behavior.
+   */
+  move(to: string, options?: MoveOptions): void;
+  /** Async version of {@link JetpackFile.move}. */
+  moveAsync(to: string, options?: MoveOptions): Promise<void>;
+
+  /**
+   * Renames this file (same parent directory).
+   * @param newName - New filename (not a full path).
+   * @param options - Overwrite behavior.
+   */
+  rename(newName: string, options?: RenameOptions): void;
+  /** Async version of {@link JetpackFile.rename}. */
+  renameAsync(newName: string, options?: RenameOptions): Promise<void>;
+
+  /** Deletes this file. Does nothing if it doesn't exist. */
+  remove(): void;
+  /** Async version of {@link JetpackFile.remove}. */
+  removeAsync(): Promise<void>;
+
+  /**
+   * Ensures this file exists on disk. Creates parent directories if needed.
+   * Returns `this` for fluent chaining.
+   * @param criteria - Optional content, mode, and JSON indentation.
+   */
+  ensure(criteria?: FileCriteria): JetpackFile;
+  /** Async version of {@link JetpackFile.ensure}. */
+  ensureAsync(criteria?: FileCriteria): Promise<JetpackFile>;
+
+  /**
+   * Inspects this file. **Throws** `ENOENT` if the file does not exist.
+   * @param options - Which extra fields to include.
+   */
+  inspect(options?: InspectOptions): InspectResult;
+  /** Async version of {@link JetpackFile.inspect}. */
+  inspectAsync(options?: InspectOptions): Promise<InspectResult>;
+
+  /**
+   * Creates a symbolic link pointing to the given target.
+   * @param target - Path that the symlink should point to.
+   */
+  symlink(target: string): void;
+  /** Async version of {@link JetpackFile.symlink}. */
+  symlinkAsync(target: string): Promise<void>;
+
+  /** Creates a readable stream for this file. */
+  createReadStream(options?: any): fs.ReadStream;
+  /** Creates a writable stream for this file. */
+  createWriteStream(options?: any): fs.WriteStream;
+};
+
+// ---------------------------------------------------------------------------
+// JetpackDir — lazy directory reference (v7)
+// ---------------------------------------------------------------------------
+
+/**
+ * A lazy reference to a directory path. No I/O is performed on construction.
+ * Created via `jetpack.dir("path")` (without criteria).
+ *
+ * Unlike the flat API, OOP-style methods that read directory state
+ * **throw** `ENOENT` if the directory does not exist (strict handle semantic).
+ *
+ * @example
+ * ```ts
+ * const d = jetpack.dir("build");
+ * d.ensure();                        // mkdir -p
+ * const files = d.list();            // throws if not found
+ * d.file("output.json").write(data);
+ * ```
+ */
+export type JetpackDir = {
+  /** Returns the absolute path of this directory reference. */
+  path(): string;
+
+  /** Checks whether the directory exists. */
+  exists(): ExistsResult;
+  /** Async version of {@link JetpackDir.exists}. */
+  existsAsync(): Promise<ExistsResult>;
+
+  /**
+   * Creates a lazy file reference within this directory. No I/O.
+   * @param name - Relative path to the file.
+   */
+  file(name: string): JetpackFile;
+
+  /**
+   * Creates a lazy directory reference within this directory. No I/O.
+   * @param name - Relative path to the subdirectory.
+   */
+  dir(name: string): JetpackDir;
+
+  /**
+   * Lists the contents of this directory. **Throws** `ENOENT` if it doesn't exist.
+   */
+  list(): string[];
+  /** Async version of {@link JetpackDir.list}. */
+  listAsync(): Promise<string[]>;
+
+  /**
+   * Finds files and directories matching glob patterns. **Throws** if this directory doesn't exist.
+   * @param options - Search options including `matching` globs.
+   */
+  find(options?: FindOptions): string[];
+  /** Async version of {@link JetpackDir.find}. */
+  findAsync(options?: FindOptions): Promise<string[]>;
+
+  /**
+   * Copies this directory to a new location.
+   * @param to - Destination path.
+   * @param options - Overwrite and matching options.
+   */
+  copy(to: string, options?: CopyOptions): void;
+  /** Async version of {@link JetpackDir.copy}. */
+  copyAsync(to: string, options?: CopyOptions): Promise<void>;
+
+  /**
+   * Moves this directory to a new location.
+   * @param to - Destination path.
+   * @param options - Overwrite behavior.
+   */
+  move(to: string, options?: MoveOptions): void;
+  /** Async version of {@link JetpackDir.move}. */
+  moveAsync(to: string, options?: MoveOptions): Promise<void>;
+
+  /**
+   * Renames this directory (same parent directory).
+   * @param newName - New directory name (not a full path).
+   * @param options - Overwrite behavior.
+   */
+  rename(newName: string, options?: RenameOptions): void;
+  /** Async version of {@link JetpackDir.rename}. */
+  renameAsync(newName: string, options?: RenameOptions): Promise<void>;
+
+  /** Deletes this directory and everything inside it. Does nothing if it doesn't exist. */
+  remove(): void;
+  /** Async version of {@link JetpackDir.remove}. */
+  removeAsync(): Promise<void>;
+
+  /**
+   * Ensures this directory exists on disk (`mkdir -p`). Returns `this` for fluent chaining.
+   * @param criteria - Optional mode and empty settings.
+   */
+  ensure(criteria?: DirCriteria): JetpackDir;
+  /** Async version of {@link JetpackDir.ensure}. */
+  ensureAsync(criteria?: DirCriteria): Promise<JetpackDir>;
+
+  /**
+   * Inspects this directory. **Throws** `ENOENT` if it doesn't exist.
+   * @param options - Which extra fields to include.
+   */
+  inspect(options?: InspectOptions): InspectResult;
+  /** Async version of {@link JetpackDir.inspect}. */
+  inspectAsync(options?: InspectOptions): Promise<InspectResult>;
+
+  /**
+   * Recursively inspects this directory tree. **Throws** `ENOENT` if it doesn't exist.
+   * @param options - Which extra fields to include.
+   */
+  inspectTree(options?: InspectTreeOptions): InspectTreeResult;
+  /** Async version of {@link JetpackDir.inspectTree}. */
+  inspectTreeAsync(options?: InspectTreeOptions): Promise<InspectTreeResult>;
+
+  /**
+   * Creates a temporary directory inside this directory.
+   * Returns a new {@link JetpackDir} scoped to the created directory.
+   * @param options - Prefix and base path.
+   */
+  tmpDir(options?: TmpDirOptions): JetpackDir;
+  /** Async version of {@link JetpackDir.tmpDir}. */
+  tmpDirAsync(options?: TmpDirOptions): Promise<JetpackDir>;
+};
+
 /**
  * The fs-jetpack API object. Every instance carries its own internal
  * Current Working Directory (CWD) and resolves all paths relative to it.
@@ -129,6 +399,8 @@ export type FSJetpack = {
    * Returns the internal CWD path when called with no arguments.
    * When called with path parts, creates a new jetpack instance
    * whose CWD is resolved from the current one.
+   *
+   * @deprecated Use `dir()` instead. Will be removed in v8.
    *
    * @example
    * ```ts
@@ -188,15 +460,17 @@ export type FSJetpack = {
   createWriteStream(path: string, options?: any): fs.WriteStream;
 
   /**
-   * Ensures a directory exists and meets the given criteria.
-   * Creates any missing parent directories. Returns a new jetpack instance scoped to that directory.
+   * When called **without** criteria, returns a lazy {@link JetpackDir} reference (no I/O).
+   * When called **with** criteria, ensures the directory exists and returns a new
+   * {@link FSJetpack} instance scoped to that directory (v6 behavior).
+   *
    * @param path - Path to the directory.
-   * @param criteria - Optional criteria (empty, mode).
    */
-  dir(path: string, criteria?: DirCriteria): FSJetpack;
+  dir(path: string): JetpackDir;
+  dir(path: string, criteria: DirCriteria): FSJetpack;
 
-  /** Async version of {@link FSJetpack.dir}. */
-  dirAsync(path: string, criteria?: DirCriteria): Promise<FSJetpack>;
+  /** Async version of {@link FSJetpack.dir} (with criteria). */
+  dirAsync(path: string, criteria: DirCriteria): Promise<FSJetpack>;
 
   /**
    * Checks whether something exists at the given path.
@@ -209,15 +483,17 @@ export type FSJetpack = {
   existsAsync(path: string): Promise<ExistsResult>;
 
   /**
-   * Ensures a file exists and meets the given criteria.
-   * Creates the file and any missing parent directories if needed.
+   * When called **without** criteria, returns a lazy {@link JetpackFile} reference (no I/O).
+   * When called **with** criteria, ensures the file exists and returns this
+   * {@link FSJetpack} instance (v6 behavior).
+   *
    * @param path - Path to the file.
-   * @param criteria - Optional criteria (content, mode, jsonIndent).
    */
-  file(path: string, criteria?: FileCriteria): FSJetpack;
+  file(path: string): JetpackFile;
+  file(path: string, criteria: FileCriteria): FSJetpack;
 
-  /** Async version of {@link FSJetpack.file}. */
-  fileAsync(path: string, criteria?: FileCriteria): Promise<FSJetpack>;
+  /** Async version of {@link FSJetpack.file} (with criteria). */
+  fileAsync(path: string, criteria: FileCriteria): Promise<FSJetpack>;
 
   /**
    * Finds files (and optionally directories) matching glob patterns.
@@ -390,6 +666,27 @@ export type FSJetpack = {
     data: WritableData,
     options?: WriteOptions,
   ): Promise<void>;
+
+  /**
+   * Registers a plugin on this instance. Mutates in place and returns `this`
+   * for chaining. Child instances (from `dir()`, `tmpDir()`, `cwd()`) inherit
+   * the parent's format handlers by shared reference.
+   *
+   * @example
+   * ```ts
+   * import JSON5 from "json5";
+   * jetpack.use({
+   *   name: "json5",
+   *   formats: {
+   *     json5: {
+   *       encode: (data) => JSON5.stringify(data, undefined, 2),
+   *       decode: (raw) => JSON5.parse(raw.toString()),
+   *     },
+   *   },
+   * });
+   * ```
+   */
+  use(plugin: JetpackPlugin): FSJetpack;
 };
 
 /**
@@ -462,13 +759,19 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
       return streams.createReadStream(resolvePath(p), options);
     },
 
-    dir(p: string, criteria?: DirCriteria): FSJetpack {
+    dir(p: string, criteria?: DirCriteria): any {
+      if (criteria === undefined) {
+        // Lazy JetpackDir reference — no I/O (v7)
+        // Full implementation in source/jetpack_dir.ts (Phase 3)
+        throw new Error('JetpackDir not yet implemented');
+      }
+
       dir.validateInput('dir', p, criteria);
       const normalizedPath = resolvePath(p);
       dir.sync(normalizedPath, criteria);
       return cwd(normalizedPath) as FSJetpack;
     },
-    async dirAsync(p: string, criteria?: DirCriteria): Promise<FSJetpack> {
+    async dirAsync(p: string, criteria: DirCriteria): Promise<FSJetpack> {
       dir.validateInput('dirAsync', p, criteria);
       const normalizedPath = resolvePath(p);
       await dir.async(normalizedPath, criteria);
@@ -484,12 +787,18 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
       return exists.async(resolvePath(p));
     },
 
-    file(p: string, criteria?: FileCriteria): FSJetpack {
+    file(p: string, criteria?: FileCriteria): any {
+      if (criteria === undefined) {
+        // Lazy JetpackFile reference — no I/O (v7)
+        // Full implementation in source/jetpack_file.ts (Phase 2)
+        throw new Error('JetpackFile not yet implemented');
+      }
+
       file.validateInput('file', p, criteria);
       file.sync(resolvePath(p), criteria);
       return api;
     },
-    async fileAsync(p: string, criteria?: FileCriteria): Promise<FSJetpack> {
+    async fileAsync(p: string, criteria: FileCriteria): Promise<FSJetpack> {
       file.validateInput('fileAsync', p, criteria);
       await file.async(resolvePath(p), criteria);
       return api;
@@ -649,6 +958,13 @@ const jetpackContext = (cwdPath?: string): FSJetpack => {
     ): Promise<void> {
       write.validateInput('writeAsync', p, data, options);
       await write.async(resolvePath(p), data, options);
+    },
+
+    use(_plugin: JetpackPlugin): FSJetpack {
+      // Plugin system implementation — Phase 5
+      // For now, accept the plugin but do nothing.
+      // Full implementation will store format handlers and wire them into read/write.
+      throw new Error('Plugin system not yet implemented');
     },
   };
 
