@@ -1,6 +1,5 @@
 /node_modules
 /distribution
 /coverage
-package-lock.json
 *.log
 .DS_Store

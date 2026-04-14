@@ -17,7 +17,11 @@
 - **`@rcsf/fs-jetpack/async`** — subpath export with async-only named methods (no `Async` suffix).
 - New exported types: `FormatHandler`, `JetpackPlugin`, `JetpackFile`, `JetpackDir`.
 
-# 6.0.0
+# 6.0.1 (2026-04-14)
+
+- Fixed README badge links not rendering on npmjs.com (#3)
+
+# 6.0.0 (2026-04-14)
 
 This is the first release of `@rcsf/fs-jetpack`, a maintained successor of [`fs-jetpack`](https://github.com/szwacz/fs-jetpack) by Jakub Szwacz.
 
