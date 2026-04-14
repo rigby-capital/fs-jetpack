@@ -1,9 +1,12 @@
 /**
  * Async-only API for `@rcsf/fs-jetpack`.
  *
+ * Every function returns a promise. Method names have no `Async` suffix.
+ *
  * @example
  * ```ts
- * import { readAsync, writeAsync, copyAsync } from "@rcsf/fs-jetpack/async";
+ * import { read, write, copy } from "@rcsf/fs-jetpack/async";
+ * const data = await read("config.json", "json");
  * ```
  *
  * @module
@@ -40,25 +43,28 @@ export {default as createJetpack} from "./jetpack.js";
 const jetpack = jetpackContext();
 export default jetpack;
 
+// Re-export async methods with suffix-less names.
+// Consumers import { read, write, ... } from "@rcsf/fs-jetpack/async"
+// and every function returns a promise.
 export const {
   path,
-  appendAsync,
-  copyAsync,
   createReadStream,
   createWriteStream,
-  dirAsync,
-  existsAsync,
-  fileAsync,
-  findAsync,
-  inspectAsync,
-  inspectTreeAsync,
-  listAsync,
-  moveAsync,
-  readAsync,
-  removeAsync,
-  renameAsync,
-  symlinkAsync,
-  tmpDirAsync,
-  writeAsync,
   use,
 } = jetpack;
+export const append = jetpack.appendAsync;
+export const copy = jetpack.copyAsync;
+export const dir = jetpack.dirAsync;
+export const exists = jetpack.existsAsync;
+export const file = jetpack.fileAsync;
+export const find = jetpack.findAsync;
+export const inspect = jetpack.inspectAsync;
+export const inspectTree = jetpack.inspectTreeAsync;
+export const list = jetpack.listAsync;
+export const move = jetpack.moveAsync;
+export const read = jetpack.readAsync;
+export const remove = jetpack.removeAsync;
+export const rename = jetpack.renameAsync;
+export const symlink = jetpack.symlinkAsync;
+export const tmpDir = jetpack.tmpDirAsync;
+export const write = jetpack.writeAsync;
