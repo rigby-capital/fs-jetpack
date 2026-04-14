@@ -720,6 +720,18 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
 
   const getPath = (...parts: string[]): string => path.resolve(getCwdPath(), ...parts);
 
+  /** Returns the file extension without the leading dot, or empty string. */
+  const getExtension = (filePath: string): string => {
+    const ext = path.extname(filePath);
+    return ext.length > 0 ? ext.slice(1) : '';
+  };
+
+  /** Looks up a registered format handler for the given file path's extension. */
+  const getFormatHandler = (filePath: string): FormatHandler | undefined => {
+    const ext = getExtension(filePath);
+    return ext ? formats.get(ext) : undefined;
+  };
+
   const normalizeOptions = (options?: any): any => {
     const options_ = options || {};
     options_.cwd = getCwdPath();
@@ -899,11 +911,41 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
 
     read(p: string, returnAs?: string): any {
       read.validateInput('read', p, returnAs);
-      return read.sync(resolvePath(p), returnAs as any);
+      const resolvedPath = resolvePath(p);
+
+      // If no explicit returnAs and a format handler is registered, use it
+      if (returnAs === undefined) {
+        const handler = getFormatHandler(resolvedPath);
+        if (handler) {
+          const raw = read.sync(resolvedPath, 'utf8') as string | undefined;
+          if (raw === undefined) {
+            return undefined;
+          }
+
+          return handler.decode(raw);
+        }
+      }
+
+      return read.sync(resolvedPath, returnAs as any);
     },
     async readAsync(p: string, returnAs?: string): Promise<any> {
       read.validateInput('readAsync', p, returnAs);
-      return read.async(resolvePath(p), returnAs as any);
+      const resolvedPath = resolvePath(p);
+
+      // If no explicit returnAs and a format handler is registered, use it
+      if (returnAs === undefined) {
+        const handler = getFormatHandler(resolvedPath);
+        if (handler) {
+          const raw = await read.async(resolvedPath, 'utf8') as string | undefined;
+          if (raw === undefined) {
+            return undefined;
+          }
+
+          return handler.decode(raw);
+        }
+      }
+
+      return read.async(resolvedPath, returnAs as any);
     },
 
     remove(p?: string): void {
@@ -952,7 +994,17 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
 
     write(p: string, data: WritableData, options?: WriteOptions): void {
       write.validateInput('write', p, data, options);
-      write.sync(resolvePath(p), data, options);
+      const resolvedPath = resolvePath(p);
+
+      // If data is an object/array and a format handler is registered, use it
+      const handler = getFormatHandler(resolvedPath);
+      if (handler && typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+        const encoded = handler.encode(data, options);
+        write.sync(resolvedPath, encoded as any, options);
+        return;
+      }
+
+      write.sync(resolvedPath, data, options);
     },
     async writeAsync(
       p: string,
@@ -960,7 +1012,17 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
       options?: WriteOptions,
     ): Promise<void> {
       write.validateInput('writeAsync', p, data, options);
-      await write.async(resolvePath(p), data, options);
+      const resolvedPath = resolvePath(p);
+
+      // If data is an object/array and a format handler is registered, use it
+      const handler = getFormatHandler(resolvedPath);
+      if (handler && typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+        const encoded = handler.encode(data, options);
+        await write.async(resolvedPath, encoded as any, options);
+        return;
+      }
+
+      await write.async(resolvedPath, data, options);
     },
 
     use(_plugin: JetpackPlugin): FSJetpack {
