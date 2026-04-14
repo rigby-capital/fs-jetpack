@@ -80,8 +80,8 @@ const xoConfig = [
     },
   },
   {
-    // Allow deprecated cwd() usage in tests and in the index re-export
-    files: ["spec/**", "source/index.ts"],
+    // Allow deprecated cwd() usage in tests and in re-export entry points
+    files: ["spec/**", "source/index.ts", "source/sync.ts", "source/async.ts"],
     rules: {
       "@typescript-eslint/no-deprecated": "off",
     },

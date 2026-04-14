@@ -35,6 +35,14 @@
     ".": {
       "types": "./distribution/index.d.ts",
       "import": "./distribution/index.js"
+    },
+    "./sync": {
+      "types": "./distribution/sync.d.ts",
+      "import": "./distribution/sync.js"
+    },
+    "./async": {
+      "types": "./distribution/async.d.ts",
+      "import": "./distribution/async.js"
     }
   },
   "files": [
