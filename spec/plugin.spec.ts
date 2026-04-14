@@ -22,6 +22,47 @@ describe("plugin system", () => {
       // Should not throw
       j.use({ name: "empty" });
     });
+
+    it("throws if plugin is not an object", () => {
+      const j = createJetpack(process.cwd());
+      assert.throws(() => {
+        (j as any).use("not-an-object");
+      }, /Argument "plugin" passed to use must be an object/);
+    });
+
+    it("throws if plugin.name is not a string", () => {
+      const j = createJetpack(process.cwd());
+      assert.throws(() => {
+        (j as any).use({ name: 123 });
+      }, /Argument "plugin\.name" passed to use must be a string/);
+    });
+
+    it("throws if plugin.formats is not an object", () => {
+      const j = createJetpack(process.cwd());
+      assert.throws(() => {
+        (j as any).use({ name: "bad", formats: "not-an-object" });
+      }, /Argument "plugin\.formats" passed to use must be an object/);
+    });
+
+    it("throws if a format handler is missing encode", () => {
+      const j = createJetpack(process.cwd());
+      assert.throws(() => {
+        (j as any).use({
+          name: "bad",
+          formats: { xyz: { decode: () => ({}) } },
+        });
+      }, /Argument "plugin\.formats\.xyz\.encode" passed to use must be a function/);
+    });
+
+    it("throws if a format handler is missing decode", () => {
+      const j = createJetpack(process.cwd());
+      assert.throws(() => {
+        (j as any).use({
+          name: "bad",
+          formats: { xyz: { encode: () => "" } },
+        });
+      }, /Argument "plugin\.formats\.xyz\.decode" passed to use must be a function/);
+    });
   });
 
   describe("format handlers", () => {

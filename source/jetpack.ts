@@ -18,6 +18,7 @@ import * as streams from './streams.js';
 import * as tmpDir from './tmp_dir.js';
 import * as write from './write.js';
 import * as symlink from './symlink.js';
+import * as validate from './utils/validate.js';
 import createJetpackFile from './jetpack_file.js';
 import createJetpackDir from './jetpack_dir.js';
 import type {InspectResult} from './inspect.js';
@@ -472,7 +473,7 @@ export type FSJetpack = {
   dir(path: string, criteria: DirCriteria): FSJetpack;
 
   /** Async version of {@link FSJetpack.dir} (with criteria). */
-  dirAsync(path: string, criteria: DirCriteria): Promise<FSJetpack>;
+  dirAsync(path: string, criteria?: DirCriteria): Promise<FSJetpack>;
 
   /**
    * Checks whether something exists at the given path.
@@ -495,7 +496,7 @@ export type FSJetpack = {
   file(path: string, criteria: FileCriteria): FSJetpack;
 
   /** Async version of {@link FSJetpack.file} (with criteria). */
-  fileAsync(path: string, criteria: FileCriteria): Promise<FSJetpack>;
+  fileAsync(path: string, criteria?: FileCriteria): Promise<FSJetpack>;
 
   /**
    * Finds files (and optionally directories) matching glob patterns.
@@ -787,7 +788,7 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
       dir.sync(normalizedPath, criteria);
       return cwd(normalizedPath) as FSJetpack;
     },
-    async dirAsync(p: string, criteria: DirCriteria): Promise<FSJetpack> {
+    async dirAsync(p: string, criteria?: DirCriteria): Promise<FSJetpack> {
       dir.validateInput('dirAsync', p, criteria);
       const normalizedPath = resolvePath(p);
       await dir.async(normalizedPath, criteria);
@@ -813,7 +814,7 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
       file.sync(resolvePath(p), criteria);
       return api;
     },
-    async fileAsync(p: string, criteria: FileCriteria): Promise<FSJetpack> {
+    async fileAsync(p: string, criteria?: FileCriteria): Promise<FSJetpack> {
       file.validateInput('fileAsync', p, criteria);
       await file.async(resolvePath(p), criteria);
       return api;
@@ -1025,9 +1026,15 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
       await write.async(resolvedPath, data, options);
     },
 
-    use(_plugin: JetpackPlugin): FSJetpack {
-      if (_plugin.formats) {
-        for (const [ext, handler] of Object.entries(_plugin.formats)) {
+    use(plugin: JetpackPlugin): FSJetpack {
+      validate.argument('use', 'plugin', plugin, ['object']);
+      validate.argument('use', 'plugin.name', plugin.name, ['string']);
+      if (plugin.formats !== undefined) {
+        validate.argument('use', 'plugin.formats', plugin.formats, ['object']);
+        for (const [ext, handler] of Object.entries(plugin.formats)) {
+          validate.argument('use', `plugin.formats.${ext}`, handler, ['object']);
+          validate.argument('use', `plugin.formats.${ext}.encode`, handler.encode, ['function']);
+          validate.argument('use', `plugin.formats.${ext}.decode`, handler.decode, ['function']);
           formats.set(ext, handler);
         }
       }
