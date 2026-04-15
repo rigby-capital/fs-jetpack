@@ -247,4 +247,105 @@ describe("plugin system", () => {
       });
     });
   });
+
+  describe("format handlers on OOP handles", () => {
+    const iniHandler: FormatHandler = {
+      encode(data: unknown): string {
+        const obj = data as Record<string, string>;
+        return Object.entries(obj)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n");
+      },
+      decode(raw: string | Buffer): unknown {
+        const str = typeof raw === "string" ? raw : raw.toString();
+        const result: Record<string, string> = {};
+        for (const line of str.split("\n")) {
+          if (line.includes("=")) {
+            const [key, ...rest] = line.split("=");
+            result[key] = rest.join("=");
+          }
+        }
+        return result;
+      },
+    };
+
+    it("JetpackFile.read() uses format handler", () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      fse.writeFileSync("handle.ini", "a=1\nb=2");
+      const f = j.file("handle.ini");
+      const result = f.read();
+      assert.deepStrictEqual(result, { a: "1", b: "2" });
+    });
+
+    it("JetpackFile.readAsync() uses format handler", async () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      fse.writeFileSync("handle.ini", "x=y");
+      const f = j.file("handle.ini");
+      const result = await f.readAsync();
+      assert.deepStrictEqual(result, { x: "y" });
+    });
+
+    it("JetpackFile.write() uses format handler", () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      const f = j.file("handle.ini");
+      f.write({ host: "localhost" });
+      const content = fse.readFileSync("handle.ini", "utf8");
+      assert.strictEqual(content, "host=localhost");
+    });
+
+    it("JetpackFile.writeAsync() uses format handler", async () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      const f = j.file("handle.ini");
+      await f.writeAsync({ port: "3000" });
+      const content = fse.readFileSync("handle.ini", "utf8");
+      assert.strictEqual(content, "port=3000");
+    });
+
+    it("JetpackDir.file() inherits format handlers", () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      fse.mkdirSync("sub");
+      fse.writeFileSync("sub/config.ini", "k=v");
+      const d = j.dir("sub");
+      const result = d.file("config.ini").read();
+      assert.deepStrictEqual(result, { k: "v" });
+    });
+
+    it("format handler registered after handle creation still applies (shared reference)", () => {
+      const j = createJetpack(process.cwd());
+      const f = j.file("late.ini");
+      // Register handler AFTER creating the file handle
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      fse.writeFileSync("late.ini", "late=yes");
+      const result = f.read();
+      assert.deepStrictEqual(result, { late: "yes" });
+    });
+
+    it("explicit returnAs bypasses format handler on handle", () => {
+      const j = createJetpack(process.cwd());
+      j.use({ name: "ini", formats: { ini: iniHandler } });
+      fse.writeFileSync("raw.ini", "a=1");
+      const f = j.file("raw.ini");
+      const result = f.read("utf8");
+      assert.strictEqual(result, "a=1");
+    });
+  });
+
+  describe("file(path, undefined) overload resolution", () => {
+    it("file(path, undefined) ensures the file (v6 behavior)", () => {
+      const j = createJetpack(process.cwd());
+      j.file("ensured.txt", undefined as any);
+      assertPath("ensured.txt").shouldBeFileWithContent("");
+    });
+
+    it("dir(path, undefined) ensures the directory (v6 behavior)", () => {
+      const j = createJetpack(process.cwd());
+      j.dir("ensured-dir", undefined as any);
+      assertPath("ensured-dir").shouldBeDirectory();
+    });
+  });
 });
