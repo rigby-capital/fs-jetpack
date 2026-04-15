@@ -1,7 +1,7 @@
 {
   "name": "@rcsf/fs-jetpack",
   "description": "Better file system API",
-  "version": "7.0.0",
+  "version": "7.0.0-rc.1",
   "type": "module",
   "author": "Rigby Capital",
   "contributors": [
