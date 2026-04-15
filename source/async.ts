@@ -1,9 +1,13 @@
 /**
  * Async-only API for `@rcsf/fs-jetpack`.
  *
- * The **named exports** are async-only (no `Async` suffix, every
- * function returns a promise). The default export is a full
- * `FSJetpack` instance for convenience.
+ * The **named exports** are async-only (no `Async` suffix) — every
+ * I/O function returns a promise.  A handful of inherently synchronous
+ * utilities (`path`, `createReadStream`, `createWriteStream`, `use`)
+ * are also re-exported for convenience so that a single import
+ * specifier is sufficient.
+ *
+ * The default export is a full `FSJetpack` instance.
  *
  * @example
  * ```ts

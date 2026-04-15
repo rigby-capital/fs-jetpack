@@ -166,15 +166,20 @@ export type JetpackFile = {
   existsAsync(): Promise<ExistsResult>;
 
   /**
-   * Reads the file content. **Throws** `ENOENT` if the file does not exist.
-   * @param returnAs - Format to return: `"utf8"` (default), `"buffer"`, `"json"`, or `"jsonWithDates"`.
-   */
-  read(): string;
+    * Reads the file content. **Throws** `ENOENT` if the file does not exist.
+    *
+    * When called without `returnAs`, returns the content as a UTF-8 string
+    * unless a format handler is registered for this file's extension, in
+    * which case the handler's decoded value (type `unknown`) is returned.
+    *
+    * @param returnAs - Format to return: `"utf8"`, `"buffer"`, `"json"`, or `"jsonWithDates"`.
+    */
+  read(): unknown;
   read(returnAs: 'utf8'): string;
   read(returnAs: 'buffer'): Buffer;
   read(returnAs: 'json' | 'jsonWithDates'): unknown;
   /** Async version of {@link JetpackFile.read}. */
-  readAsync(): Promise<string>;
+  readAsync(): Promise<unknown>;
   readAsync(returnAs: 'utf8'): Promise<string>;
   readAsync(returnAs: 'buffer'): Promise<Buffer>;
   readAsync(returnAs: 'json' | 'jsonWithDates'): Promise<unknown>;
@@ -470,7 +475,7 @@ export type FSJetpack = {
    * @param path - Path to the directory.
    */
   dir(path: string): JetpackDir;
-  dir(path: string, criteria: DirCriteria): FSJetpack;
+  dir(path: string, criteria: DirCriteria | undefined): FSJetpack;
 
   /** Async version of {@link FSJetpack.dir} (with criteria). */
   dirAsync(path: string, criteria?: DirCriteria): Promise<FSJetpack>;
@@ -493,7 +498,7 @@ export type FSJetpack = {
    * @param path - Path to the file.
    */
   file(path: string): JetpackFile;
-  file(path: string, criteria: FileCriteria): FSJetpack;
+  file(path: string, criteria: FileCriteria | undefined): FSJetpack;
 
   /** Async version of {@link FSJetpack.file} (with criteria). */
   fileAsync(path: string, criteria?: FileCriteria): Promise<FSJetpack>;
@@ -571,10 +576,14 @@ export type FSJetpack = {
   moveAsync(from: string, to: string, options?: MoveOptions): Promise<void>;
 
   /**
-   * Reads the contents of a file. Returns `undefined` if the file does not exist.
-   * @param path - Path to the file.
-   */
-  read(path: string): string | undefined;
+    * Reads the contents of a file. Returns `undefined` if the file does not exist.
+    *
+    * Without `returnAs`, the result may be a plugin-decoded value (`unknown`).
+    * Pass `"utf8"` to always get a string.
+    *
+    * @param path - Path to the file.
+    */
+  read(path: string): unknown;
 
   /**
    * Reads a file as a UTF-8 string.
@@ -598,7 +607,7 @@ export type FSJetpack = {
   read(path: string, returnAs: 'json' | 'jsonWithDates'): any | undefined;
 
   /** Async version of {@link FSJetpack.read}. */
-  readAsync(path: string): Promise<string | undefined>;
+  readAsync(path: string): Promise<unknown>;
   /** Async version of {@link FSJetpack.read} returning a UTF-8 string. */
   readAsync(path: string, returnAs: 'utf8'): Promise<string | undefined>;
   /** Async version of {@link FSJetpack.read} returning a Buffer. */

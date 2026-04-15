@@ -3,7 +3,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import assertPath from "./assert_path.js";
 import helper from "./helper.js";
-import jetpack, { createJetpack, type FormatHandler, type JetpackPlugin } from "../source/index.js";
+import { createJetpack, type FormatHandler, type JetpackPlugin } from "../source/index.js";
 
 describe("plugin system", () => {
   beforeEach(helper.setCleanTestCwd);

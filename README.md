@@ -805,9 +805,9 @@ const sub = jetpack.dir("sub");
 sub.read("foo.txt");
 
 // v7: returns lazy JetpackDir (no I/O)
-const sub = jetpack.dir("sub");       // does nothing on disk
-sub.ensure();                         // mkdir -p (v7 equivalent)
-const sub = jetpack.dir("sub", {});   // creates dir (v6-compatible)
+const lazyDir = jetpack.dir("sub");    // does nothing on disk
+lazyDir.ensure();                      // mkdir -p (v7 equivalent)
+const ensured = jetpack.dir("sub", {});// creates dir (v6-compatible)
 
 // v7 OOP style
 jetpack.dir("sub").file("foo.txt").read();
