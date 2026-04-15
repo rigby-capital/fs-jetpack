@@ -778,9 +778,9 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
     },
 
     dir(p: string, criteria?: DirCriteria): any {
-      if (criteria === undefined) {
+      if (arguments.length < 2) {
         // Lazy JetpackDir reference — no I/O (v7)
-        return createJetpackDir(resolvePath(p));
+        return createJetpackDir(resolvePath(p), formats);
       }
 
       dir.validateInput('dir', p, criteria);
@@ -805,9 +805,9 @@ const jetpackContext = (cwdPath?: string, formatHandlers?: Map<string, FormatHan
     },
 
     file(p: string, criteria?: FileCriteria): any {
-      if (criteria === undefined) {
+      if (arguments.length < 2) {
         // Lazy JetpackFile reference — no I/O (v7)
-        return createJetpackFile(resolvePath(p));
+        return createJetpackFile(resolvePath(p), formats);
       }
 
       file.validateInput('file', p, criteria);
