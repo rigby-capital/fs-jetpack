@@ -24,4 +24,10 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm test
-      - run: npm publish --access public
+      - name: Publish to npm
+        run: |
+          TAG="latest"
+          if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+            TAG="next"
+          fi
+          npm publish --access public --tag "$TAG" --provenance
