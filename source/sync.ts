@@ -1,6 +1,9 @@
 /**
  * Synchronous-only API for `@rcsf/fs-jetpack`.
  *
+ * The **named exports** are sync-only (no `Async` suffix).
+ * The default export is a full `FSJetpack` instance for convenience.
+ *
  * @example
  * ```ts
  * import { read, write, copy } from "@rcsf/fs-jetpack/sync";

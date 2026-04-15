@@ -1,7 +1,9 @@
 /**
  * Async-only API for `@rcsf/fs-jetpack`.
  *
- * Every function returns a promise. Method names have no `Async` suffix.
+ * The **named exports** are async-only (no `Async` suffix, every
+ * function returns a promise). The default export is a full
+ * `FSJetpack` instance for convenience.
  *
  * @example
  * ```ts
