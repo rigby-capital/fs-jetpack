@@ -122,8 +122,8 @@ export type RenameOptions = {
 export type FormatHandler = {
   /** Serialize data into a string or Buffer for writing. */
   encode(data: unknown, options?: unknown): string | Buffer;
-  /** Deserialize raw file content into a structured value. */
-  decode(raw: string | Buffer, options?: unknown): unknown;
+  /** Deserialize raw file content (always UTF-8 string) into a structured value. */
+  decode(raw: string, options?: unknown): unknown;
 };
 
 /**

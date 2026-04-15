@@ -210,7 +210,7 @@ type FSJetpack = {
 ```ts
 type FormatHandler = {
   encode(data: unknown, options?: unknown): string | Buffer;
-  decode(raw: string | Buffer, options?: unknown): unknown;
+  decode(raw: string, options?: unknown): unknown;
 };
 
 type JetpackPlugin = {
