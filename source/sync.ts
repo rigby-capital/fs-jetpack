@@ -1,3 +1,16 @@
+/**
+ * Synchronous-only API for `@rcsf/fs-jetpack`.
+ *
+ * The **named exports** are sync-only (no `Async` suffix).
+ * The default export is a full `FSJetpack` instance for convenience.
+ *
+ * @example
+ * ```ts
+ * import { read, write, copy } from "@rcsf/fs-jetpack/sync";
+ * ```
+ *
+ * @module
+ */
 import jetpackContext from "./jetpack.js";
 
 export type {
@@ -25,57 +38,31 @@ export type {
   JetpackDir,
 } from "./jetpack.js";
 
-/**
- * Factory function to create a new fs-jetpack instance with a custom CWD.
- *
- * @example
- * ```ts
- * import { createJetpack } from "@rcsf/fs-jetpack";
- * const src = createJetpack("/path/to/source");
- * ```
- */
-export { default as createJetpack } from "./jetpack.js";
+export {default as createJetpack} from "./jetpack.js";
 
 const jetpack = jetpackContext();
 export default jetpack;
 
-// Re-export all public API methods bound to the default jetpack instance
-// so users can do: import { read, write, copy } from "@rcsf/fs-jetpack";
 export const {
   cwd,
   path,
   append,
-  appendAsync,
   copy,
-  copyAsync,
   createReadStream,
   createWriteStream,
   dir,
-  dirAsync,
   exists,
-  existsAsync,
   file,
-  fileAsync,
   find,
-  findAsync,
   inspect,
-  inspectAsync,
   inspectTree,
-  inspectTreeAsync,
   list,
-  listAsync,
   move,
-  moveAsync,
   read,
-  readAsync,
   remove,
-  removeAsync,
   rename,
-  renameAsync,
   symlink,
-  symlinkAsync,
   tmpDir,
-  tmpDirAsync,
   write,
-  writeAsync,
+  use,
 } = jetpack;

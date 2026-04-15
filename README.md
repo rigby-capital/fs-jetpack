@@ -11,6 +11,7 @@ API for your everyday file system manipulations, much more convenient than [fs](
 
 ## What changed from the original
 
+**v6 (initial release)**
 - ESM-only (no CommonJS)
 - Requires Node.js >= 22
 - Source rewritten in TypeScript with full JSDoc
@@ -19,6 +20,13 @@ API for your everyday file system manipulations, much more convenient than [fs](
 - Uses `async/await` throughout
 - Tested with Node.js built-in test runner (`node:test`)
 - Linted with XO
+
+**v7**
+- `file("path")` and `dir("path")` without criteria return lazy `JetpackFile` / `JetpackDir` handles (no I/O)
+- OOP-style file and directory handles with strict ENOENT semantics
+- `.use()` plugin system for pluggable format handlers (TOML, YAML, JSON5, etc.)
+- `@rcsf/fs-jetpack/sync` and `@rcsf/fs-jetpack/async` subpath exports
+- `cwd()` deprecated (JSDoc only, no runtime warning; will be removed in v8)
 
 ## Installation
 
@@ -40,7 +48,41 @@ import { createJetpack } from "@rcsf/fs-jetpack";
 const src = createJetpack("/path/to/source");
 
 // Types are exported directly
-import type { FSJetpack, InspectResult, CopyOptions } from "@rcsf/fs-jetpack";
+import type {
+  FSJetpack, JetpackFile, JetpackDir,
+  FormatHandler, JetpackPlugin,
+  InspectResult, CopyOptions,
+} from "@rcsf/fs-jetpack";
+```
+
+### OOP-style handles (v7)
+
+```ts
+import jetpack from "@rcsf/fs-jetpack";
+
+const f = jetpack.file("config.json");    // lazy, no I/O
+f.ensure();                               // creates if missing
+const data = f.read("json");              // throws ENOENT if missing
+f.write({ key: "value" });
+
+const d = jetpack.dir("build");           // lazy, no I/O
+d.ensure();                               // mkdir -p
+const files = d.list();                   // throws ENOENT if missing
+d.file("output.json").write(results);
+```
+
+### Sync-only imports
+
+```ts
+import { read, write, copy } from "@rcsf/fs-jetpack/sync";
+const content = read("/path/to/file.json", "json");
+```
+
+### Async-only imports
+
+```ts
+import { read, write, copy } from "@rcsf/fs-jetpack/async";
+const content = await read("/path/to/file.json", "json");
 ```
 
 # Table of Contents
@@ -52,7 +94,7 @@ import type { FSJetpack, InspectResult, CopyOptions } from "@rcsf/fs-jetpack";
 [copy](#copyfrom-to-options)
 [createReadStream](#createreadstreampath-options)
 [createWriteStream](#createwritestreampath-options)
-[cwd](#cwdpath)
+[cwd](#cwdpath) *(deprecated)*
 [dir](#dirpath-criteria)
 [exists](#existspath)
 [file](#filepath-criteria)
@@ -67,7 +109,22 @@ import type { FSJetpack, InspectResult, CopyOptions } from "@rcsf/fs-jetpack";
 [rename](#renamepath-newname-options)
 [symlink](#symlinksymlinkvalue-path)
 [tmpDir](#tmpdiroptions)
+[use](#useplugin)
 [write](#writepath-data-options)
+
+**v7 OOP Handles:**
+[JetpackFile](#jetpackfile)
+[JetpackDir](#jetpackdir)
+
+**Plugin System:**
+[Format Handlers](#format-handlers)
+
+**Subpath Exports:**
+[/sync](#sync-export)
+[/async](#async-export)
+
+[Upgrading](#upgrading)
+[Matching Patterns](#matching-patterns)
 
 # Key Concepts
 
@@ -103,6 +160,8 @@ Everyone who has a lot to do with file system probably is sick of seeing error _
 - For write/creation operations, if any of parent directories doesn't exist jetpack will just create them as well (like `mkdir -p` works).
 - For read/inspect operations, if file or directory doesn't exist `undefined` is returned instead of throwing.
 
+**Note:** The v7 OOP handles (`JetpackFile`, `JetpackDir`) use **strict** semantics -- `read()`, `inspect()`, `list()`, and `inspectTree()` throw `ENOENT` instead of returning `undefined`. This is intentional: when you hold a handle to a specific file or directory, a missing path is an error.
+
 ### Sync & async harmony
 
 API has the same set of synchronous and asynchronous methods. All async methods are promise based.
@@ -119,6 +178,13 @@ const data = await jetpack.readAsync("file.txt");
 console.log(data);
 ```
 
+For codebases that consistently use one style, v7 adds [subpath exports](#sync-export) that drop the `Async` suffix:
+
+```ts
+import { read, write } from "@rcsf/fs-jetpack/async";
+const data = await read("file.txt");  // no "readAsync" needed
+```
+
 ## All API methods cooperate nicely with each other
 
 Let's say you want to create folder structure as demonstrated in comment below. Piece of cake!
@@ -132,12 +198,25 @@ Let's say you want to create folder structure as demonstrated in comment below. 
 //    |- polish.txt
 
 jetpack
-  .dir("greets")
+  .dir("greets", {})
   .file("greet.txt", { content: "Hello world!" })
   .file("greet.json", { content: { greet: "Hello world!" } })
   .cwd("..")
-  .dir("greets-i18n")
+  .dir("greets-i18n", {})
   .file("polish.txt", { content: "Witaj świecie!" });
+```
+
+Or use the v7 OOP style:
+
+```ts
+const greets = jetpack.dir("greets");
+greets.ensure();
+greets.file("greet.txt").write("Hello world!");
+greets.file("greet.json").write({ greet: "Hello world!" });
+
+const i18n = jetpack.dir("greets-i18n");
+i18n.ensure();
+i18n.file("polish.txt").write("Witaj świecie!");
 ```
 
 Need to copy whole directory of files, but first perform some transformations on each file?
@@ -172,16 +251,6 @@ dir.write("data.txt", myData);
 // and don't need the folder any longer just call...
 dir.remove();
 ```
-
-## Upgrading from fs-jetpack
-
-If you are upgrading from the original `fs-jetpack` package:
-
-1. Change `require('fs-jetpack')` to `import jetpack from '@rcsf/fs-jetpack'`
-2. Ensure your project uses ESM (`"type": "module"` in package.json)
-3. Ensure you are running Node.js >= 22
-
-The API surface is identical -- all methods work the same way.
 
 # API
 
@@ -247,6 +316,8 @@ Just an alias to vanilla [fs.createWriteStream](http://nodejs.org/api/fs.html#fs
 
 ## cwd([path...])
 
+> **Deprecated.** Use `dir()` instead. Will be removed in v8.
+
 Returns Current Working Directory (CWD) for this instance of jetpack, or creates new jetpack object with given path as its internal CWD.
 
 **Note:** fs-jetpack never changes value of `process.cwd()`, the CWD we are talking about here is internal value inside every jetpack instance.
@@ -262,7 +333,9 @@ If `path` specified, returns new jetpack object (totally the same thing as main 
 
 asynchronous: **dirAsync(path, [criteria])**
 
-Ensures that directory on given path exists and meets given criteria. If any criterium is not met it will be after this call. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`).
+**Without criteria (v7):** Returns a lazy `JetpackDir` reference -- no directory is created on disk. See [JetpackDir](#jetpackdir).
+
+**With criteria:** Ensures that directory on given path exists and meets given criteria. If any criterium is not met it will be after this call. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`).
 
 **arguments:**
 `path` path to directory to examine.
@@ -272,7 +345,8 @@ Ensures that directory on given path exists and meets given criteria. If any cri
 - `mode` ensures directory has specified mode. If not set and directory already exists, current mode will be preserved. Value could be number (eg. `0o700`) or string (eg. `'700'`).
 
 **returns:**
-New CWD context with directory specified in `path` as CWD.
+Without criteria: `JetpackDir` (lazy handle, no I/O).
+With criteria: New CWD context with directory specified in `path` as CWD.
 
 ## exists(path)
 
@@ -291,7 +365,9 @@ Checks whether something exists on given `path`. This method returns values more
 
 asynchronous: **fileAsync(path, [criteria])**
 
-Ensures that file exists and meets given criteria. If any criterium is not met it will be after this call. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`).
+**Without criteria (v7):** Returns a lazy `JetpackFile` reference -- no file is created on disk. See [JetpackFile](#jetpackfile).
+
+**With criteria:** Ensures that file exists and meets given criteria. If any criterium is not met it will be after this call. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`).
 
 **arguments:**
 `path` path to file to examine.
@@ -302,7 +378,8 @@ Ensures that file exists and meets given criteria. If any criterium is not met i
 - `mode` ensures file has specified mode. If not set and file already exists, current mode will be preserved. Value could be number (eg. `0o700`) or string (eg. `'700'`).
 
 **returns:**
-Jetpack object you called this method on (self).
+Without criteria: `JetpackFile` (lazy handle, no I/O).
+With criteria: Jetpack object you called this method on (self).
 
 ## find([path], searchOptions)
 
@@ -422,7 +499,7 @@ Resolved path as string.
 
 asynchronous: **readAsync(path, [returnAs])**
 
-Reads content of file.
+Reads content of file. If a [format handler](#format-handlers) is registered for the file's extension and no explicit `returnAs` is provided, the handler's `decode()` function is used automatically.
 
 **arguments:**
 `path` path to file.
@@ -492,11 +569,49 @@ Creates temporary directory with random, unique name.
 **returns:**
 New CWD context with temporary directory specified in `path` as CWD.
 
+## use(plugin)
+
+Registers a plugin with this jetpack instance. Currently plugins can provide [format handlers](#format-handlers) for custom file extensions. The instance is modified in place and returned for chaining. Format handlers are inherited by child instances (from `cwd()`, `dir()`, `tmpDir()`) via shared reference.
+
+**arguments:**
+`plugin` an object conforming to the `JetpackPlugin` type:
+
+```ts
+type JetpackPlugin = {
+  name: string;                              // descriptive name
+  formats?: Record<string, FormatHandler>;   // extension → handler
+};
+```
+
+**returns:**
+The same jetpack instance (for chaining).
+
+**example:**
+
+```ts
+import jetpack from "@rcsf/fs-jetpack";
+import JSON5 from "json5";
+
+jetpack.use({
+  name: "json5",
+  formats: {
+    json5: {
+      encode: (data) => JSON5.stringify(data, undefined, 2),
+      decode: (raw) => JSON5.parse(raw.toString()),
+    },
+  },
+});
+
+// Now .json5 files are automatically serialized/deserialized:
+jetpack.write("config.json5", { key: "value" });
+const cfg = jetpack.read("config.json5");  // returns { key: "value" }
+```
+
 ## write(path, data, [options])
 
 asynchronous: **writeAsync(path, data, [options])**
 
-Writes data to file. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`).
+Writes data to file. If any parent directory in `path` doesn't exist it will be created (like `mkdir -p`). If a [format handler](#format-handlers) is registered for the file's extension and `data` is an object or array, the handler's `encode()` function is used automatically.
 
 **arguments:**
 `path` path to file.
@@ -509,6 +624,199 @@ Writes data to file. If any parent directory in `path` doesn't exist it will be 
 
 **returns:**
 Nothing.
+
+# JetpackFile
+
+A lazy reference to a file path. Created via `jetpack.file("path")` (without criteria) or via `dir.file("name")` on a `JetpackDir`. No I/O is performed on construction.
+
+Unlike the flat API (`jetpack.read("path")`), which returns `undefined` for missing files, `JetpackFile` methods use **strict semantics** -- `read()` and `inspect()` throw `ENOENT` if the file does not exist.
+
+## Methods
+
+| Method | Async variant | Description |
+|--------|---------------|-------------|
+| `path()` | -- | Returns the absolute path |
+| `exists()` | `existsAsync()` | Returns `false`, `"file"`, `"dir"`, or `"other"` |
+| `read([returnAs])` | `readAsync([returnAs])` | Reads content. **Throws** ENOENT if missing |
+| `write(data, [options])` | `writeAsync(data, [options])` | Writes data, creating parent dirs |
+| `append(data, [options])` | `appendAsync(data, [options])` | Appends data, creating file if needed |
+| `copy(to, [options])` | `copyAsync(to, [options])` | Copies to destination |
+| `move(to, [options])` | `moveAsync(to, [options])` | Moves to destination |
+| `rename(newName, [options])` | `renameAsync(newName, [options])` | Renames (same parent dir) |
+| `remove()` | `removeAsync()` | Deletes the file (no-op if missing) |
+| `ensure([criteria])` | `ensureAsync([criteria])` | Creates file + parents. Returns `this` |
+| `inspect([options])` | `inspectAsync([options])` | Inspects. **Throws** ENOENT if missing |
+| `symlink(target)` | `symlinkAsync(target)` | Creates a symlink |
+| `createReadStream([options])` | -- | Vanilla `fs.createReadStream` |
+| `createWriteStream([options])` | -- | Vanilla `fs.createWriteStream` |
+
+**Example:**
+
+```ts
+const f = jetpack.file("data/config.json");
+
+// Lazy -- no I/O yet
+console.log(f.path());  // "/abs/path/data/config.json"
+
+// Create with content
+f.ensure({ content: { port: 3000 } });
+
+// Read back
+const cfg = f.read("json");  // { port: 3000 }
+
+// Fluent chaining
+jetpack.file("log.txt").ensure().append("started\n");
+```
+
+# JetpackDir
+
+A lazy reference to a directory path. Created via `jetpack.dir("path")` (without criteria) or via `dir.dir("name")` on another `JetpackDir`. No I/O is performed on construction.
+
+Unlike the flat API, `JetpackDir` methods use **strict semantics** -- `list()`, `inspect()`, and `inspectTree()` throw `ENOENT` if the directory does not exist.
+
+## Methods
+
+| Method | Async variant | Description |
+|--------|---------------|-------------|
+| `path()` | -- | Returns the absolute path |
+| `exists()` | `existsAsync()` | Returns `false`, `"dir"`, `"file"`, or `"other"` |
+| `file(name)` | -- | Creates a lazy `JetpackFile` within this dir |
+| `dir(name)` | -- | Creates a lazy `JetpackDir` within this dir |
+| `list()` | `listAsync()` | Lists contents. **Throws** ENOENT if missing |
+| `find([options])` | `findAsync([options])` | Finds matching paths. **Throws** if dir missing |
+| `copy(to, [options])` | `copyAsync(to, [options])` | Copies to destination |
+| `move(to, [options])` | `moveAsync(to, [options])` | Moves to destination |
+| `rename(newName, [options])` | `renameAsync(newName, [options])` | Renames (same parent dir) |
+| `remove()` | `removeAsync()` | Deletes dir + contents (no-op if missing) |
+| `ensure([criteria])` | `ensureAsync([criteria])` | `mkdir -p`. Returns `this` |
+| `inspect([options])` | `inspectAsync([options])` | Inspects. **Throws** ENOENT if missing |
+| `inspectTree([options])` | `inspectTreeAsync([options])` | Recursive inspect. **Throws** ENOENT if missing |
+| `tmpDir([options])` | `tmpDirAsync([options])` | Creates temp dir, returns `JetpackDir` |
+
+**Example:**
+
+```ts
+const build = jetpack.dir("build");
+build.ensure();
+
+// Create nested structure
+build.dir("assets").ensure();
+build.file("index.html").write("<html>...</html>");
+build.file("assets/style.css").write("body { }");
+
+// List contents
+const files = build.list();  // ["assets", "index.html"]
+
+// Inspect tree
+const tree = build.inspectTree();
+console.log(tree.children.length);
+```
+
+# Format Handlers
+
+Format handlers let you teach jetpack how to read and write custom file formats. Register them via the [`.use()`](#useplugin) method.
+
+A `FormatHandler` has two methods:
+
+```ts
+type FormatHandler = {
+  encode(data: unknown): string | Buffer;  // serialize for writing
+  decode(raw: string | Buffer): unknown;   // deserialize after reading
+};
+```
+
+**How format handlers interact with `read()` and `write()`:**
+
+- **`write(path, data)`**: If `data` is an object or array and the file extension has a registered handler, `handler.encode(data)` is called instead of the default JSON serialization. String and Buffer data bypass the handler.
+- **`read(path)`**: If no explicit `returnAs` is specified and the file extension has a registered handler, the file is read as UTF-8 and then `handler.decode(raw)` is called. Explicit `returnAs` values (`"utf8"`, `"buffer"`, `"json"`, `"jsonWithDates"`) bypass the handler.
+
+**Handler inheritance:** Format handlers are stored in a shared `Map`. Child instances created via `cwd()`, `dir()`, or `tmpDir()` inherit the parent's handlers by reference. Registering a handler on the parent after creating a child makes it visible to the child.
+
+**Example with TOML:**
+
+```ts
+import jetpack from "@rcsf/fs-jetpack";
+import TOML from "@iarna/toml";
+
+jetpack.use({
+  name: "toml",
+  formats: {
+    toml: {
+      encode: (data) => TOML.stringify(data),
+      decode: (raw) => TOML.parse(raw.toString()),
+    },
+  },
+});
+
+jetpack.write("config.toml", { database: { host: "localhost", port: 5432 } });
+const config = jetpack.read("config.toml");
+// config.database.host === "localhost"
+```
+
+# Sync Export
+
+`@rcsf/fs-jetpack/sync` exports only synchronous methods as named exports. Method names have no `Async` suffix.
+
+```ts
+import { read, write, copy, find, dir, file } from "@rcsf/fs-jetpack/sync";
+
+const data = read("config.json", "json");
+write("output.json", data);
+```
+
+# Async Export
+
+`@rcsf/fs-jetpack/async` exports only asynchronous methods as named exports. Method names have no `Async` suffix -- every function returns a promise.
+
+```ts
+import { read, write, copy, find, dir, file } from "@rcsf/fs-jetpack/async";
+
+const data = await read("config.json", "json");
+await write("output.json", data);
+```
+
+# Upgrading
+
+## From the original `fs-jetpack` to v6
+
+1. Change `require('fs-jetpack')` to `import jetpack from '@rcsf/fs-jetpack'`
+2. Ensure your project uses ESM (`"type": "module"` in package.json)
+3. Ensure you are running Node.js >= 22
+
+The API surface is identical -- all methods work the same way.
+
+## From v6 to v7
+
+v7 changes the behavior of `file()` and `dir()` when called **without criteria**:
+
+```ts
+// v6: creates the file on disk, returns FSJetpack
+jetpack.file("log.txt");
+
+// v7: returns lazy JetpackFile (no I/O)
+jetpack.file("log.txt");           // does nothing on disk
+jetpack.file("log.txt").ensure();  // creates if missing (v7 equivalent)
+jetpack.file("log.txt", {});       // also creates (v6-compatible, passes empty criteria)
+```
+
+```ts
+// v6: creates the directory, returns scoped FSJetpack
+const sub = jetpack.dir("sub");
+sub.read("foo.txt");
+
+// v7: returns lazy JetpackDir (no I/O)
+const lazyDir = jetpack.dir("sub");    // does nothing on disk
+lazyDir.ensure();                      // mkdir -p (v7 equivalent)
+const ensured = jetpack.dir("sub", {});// creates dir (v6-compatible)
+
+// v7 OOP style
+jetpack.dir("sub").file("foo.txt").read();
+```
+
+Other changes:
+- `cwd()` is deprecated. Use `dir()` or `path()` instead.
+- New types exported: `JetpackFile`, `JetpackDir`, `FormatHandler`, `JetpackPlugin`.
+- New subpath exports: `@rcsf/fs-jetpack/sync`, `@rcsf/fs-jetpack/async`.
 
 # Matching patterns
 

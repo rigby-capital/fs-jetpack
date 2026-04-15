@@ -15,12 +15,12 @@ describe("file", () => {
     };
 
     it("sync", () => {
-      jetpack.file("file.txt");
+      jetpack.file("file.txt", {});
       expectations();
     });
 
     it("async", async () => {
-      await jetpack.fileAsync("file.txt");
+      await jetpack.fileAsync("file.txt", {});
       expectations();
     });
   });
@@ -36,13 +36,13 @@ describe("file", () => {
 
     it("sync", () => {
       preparations();
-      jetpack.file("file.txt");
+      jetpack.file("file.txt", {});
       expectations();
     });
 
     it("async", async () => {
       preparations();
-      await jetpack.fileAsync("file.txt");
+      await jetpack.fileAsync("file.txt", {});
       expectations();
     });
   });
@@ -164,7 +164,7 @@ describe("file", () => {
     it("sync", () => {
       preparations();
       try {
-        jetpack.file("a");
+        jetpack.file("a", {});
         throw new Error("Expected error to be thrown");
       } catch (err: any) {
         expectations(err);
@@ -174,7 +174,7 @@ describe("file", () => {
     it("async", async () => {
       preparations();
       await assert.rejects(
-        () => jetpack.fileAsync("a"),
+        () => jetpack.fileAsync("a", {}),
         (err: any) => {
           expectations(err);
           return true;
@@ -189,12 +189,12 @@ describe("file", () => {
     };
 
     it("sync", () => {
-      jetpack.file("a/b/c.txt");
+      jetpack.file("a/b/c.txt", {});
       expectations();
     });
 
     it("async", async () => {
-      await jetpack.fileAsync("a/b/c.txt");
+      await jetpack.fileAsync("a/b/c.txt", {});
       expectations();
     });
   });
@@ -205,11 +205,11 @@ describe("file", () => {
     };
 
     it("sync", () => {
-      expectations(jetpack.file("file.txt"));
+      expectations(jetpack.file("file.txt", {}));
     });
 
     it("async", async () => {
-      const jetpackContext = await jetpack.fileAsync("file.txt");
+      const jetpackContext = await jetpack.fileAsync("file.txt", {});
       expectations(jetpackContext);
     });
   });
@@ -221,13 +221,13 @@ describe("file", () => {
 
     it("sync", () => {
       const jetContext = jetpack.cwd("a");
-      jetContext.file("b.txt");
+      jetContext.file("b.txt", {});
       expectations();
     });
 
     it("async", async () => {
       const jetContext = jetpack.cwd("a");
-      await jetContext.fileAsync("b.txt");
+      await jetContext.fileAsync("b.txt", {});
       expectations();
     });
   });
@@ -292,7 +292,7 @@ describe("file", () => {
 
       it("sync, ensure exists", () => {
         preparations();
-        jetpack.file("file.txt");
+        jetpack.file("file.txt", {});
         expectations();
       });
 
@@ -304,7 +304,7 @@ describe("file", () => {
 
       it("async, ensure exists", async () => {
         preparations();
-        await jetpack.fileAsync("file.txt");
+        await jetpack.fileAsync("file.txt", {});
         expectations();
       });
 
@@ -340,13 +340,13 @@ describe("file", () => {
       tests.forEach((test) => {
         it(test.type, async () => {
           if (test.type === "async") {
-            await assert.rejects(() => test.method(undefined), {
+            await assert.rejects(() => test.method(undefined, {}), {
               message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
             });
           } else {
             assert.throws(
               () => {
-                test.method(undefined);
+                test.method(undefined, {});
               },
               {
                 message: `Argument "path" passed to ${test.methodName}(path, [criteria]) must be a string. Received undefined`,
